@@ -19,7 +19,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Outfit", "sans-serif"],
+        sans: ["Quicksand", "sans-serif"],
+        game: ["Fredoka", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -55,14 +56,17 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        forest: {
-          deep: "hsl(var(--forest-deep))",
-          canopy: "hsl(var(--forest-canopy))",
-          moss: "hsl(var(--forest-moss))",
-          bark: "hsl(var(--forest-bark))",
-          sunlight: "hsl(var(--forest-sunlight))",
-          sky: "hsl(var(--forest-sky))",
-          fog: "hsl(var(--forest-fog))",
+        game: {
+          sunlight: "hsl(var(--sunlight))",
+          "sunlight-glow": "hsl(var(--sunlight-glow))",
+          "leaf-bright": "hsl(var(--leaf-bright))",
+          "leaf-dark": "hsl(var(--leaf-dark))",
+          stem: "hsl(var(--stem))",
+          soil: "hsl(var(--soil))",
+          "sky-top": "hsl(var(--sky-top))",
+          "sky-bottom": "hsl(var(--sky-bottom))",
+          energy: "hsl(var(--energy))",
+          growth: "hsl(var(--growth))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -93,21 +97,33 @@ export default {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        "pulse-glow": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.6" },
-        },
-        float: {
+        "bounce-soft": {
           "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-5px)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { opacity: "1", filter: "brightness(1)" },
+          "50%": { opacity: "0.8", filter: "brightness(1.2)" },
+        },
+        "sway": {
+          "0%, 100%": { transform: "rotate(-2deg)" },
+          "50%": { transform: "rotate(2deg)" },
+        },
+        "float-down": {
+          "0%": { transform: "translateY(-100vh)", opacity: "0" },
+          "10%": { opacity: "1" },
+          "90%": { opacity: "1" },
+          "100%": { transform: "translateY(100vh)", opacity: "0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out forwards",
+        "bounce-soft": "bounce-soft 2s ease-in-out infinite",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
-        float: "float 3s ease-in-out infinite",
+        "sway": "sway 3s ease-in-out infinite",
+        "float-down": "float-down 8s linear infinite",
       },
     },
   },
