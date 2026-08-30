@@ -191,19 +191,19 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
     // --- screen (right) with a light patch
     const screen = new THREE.Mesh(
       new THREE.PlaneGeometry(3.2, 2.6),
-      new THREE.MeshStandardMaterial({ color: 0xe8eaf0, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: 0xf1f3f8, roughness: 0.9, side: THREE.DoubleSide })
     );
     screen.rotation.y = -0.5; // angled so the lit face points at the camera
     screen.position.set(3.1, 2.75, 0);
     screen.receiveShadow = true;
     scene.add(screen);
-    const screenFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 2.9, 3.5),
-      new THREE.MeshStandardMaterial({ color: 0x2b3442, roughness: 0.5, metalness: 0.5 })
+    const screenBack = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.4, 2.8),
+      new THREE.MeshStandardMaterial({ color: 0x2b3442, roughness: 0.6, side: THREE.DoubleSide })
     );
-    screenFrame.rotation.y = -0.5;
-    screenFrame.position.set(3.17, 2.75, -0.13);
-    scene.add(screenFrame);
+    screenBack.rotation.y = -0.5;
+    screenBack.position.set(3.16, 2.75, -0.13);
+    scene.add(screenBack);
 
     const patchMat = new THREE.MeshBasicMaterial({ color: 0xfff3cd, transparent: true, opacity: 0 });
     const patch = new THREE.Mesh(new THREE.CircleGeometry(0.85, 40), patchMat);
@@ -217,8 +217,8 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
 
     // measurement readout above the screen
     const meter = makeLabel('0% מהאור עבר');
-    meter.sprite.scale.set(2.4, 0.6, 1);
-    meter.sprite.position.set(2.5, 1.25, 1.5);
+    meter.sprite.scale.set(2.1, 0.52, 1);
+    meter.sprite.position.set(1.6, 1.2, 2.0);
     scene.add(meter.sprite);
 
     // orbit
