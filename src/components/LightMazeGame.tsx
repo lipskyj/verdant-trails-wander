@@ -449,43 +449,19 @@ const LightMazeGame: React.FC = () => {
             <div className="flex flex-col items-center justify-center my-auto gap-5 game-panel p-8 text-center">
               <div className="text-5xl animate-bounce">{lesson.reward?.icon ?? '🔦'}</div>
               <h2 className="text-2xl font-bold text-primary">קיבלתם את {lesson.reward?.name ?? 'פנס הקסם'}!</h2>
-              <p className="text-muted-foreground max-w-md text-sm">{SIMULATION_DATA.narrative.unlocked}</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
-                {LESSONS.map((room) => {
-                  const done = room.slug === lesson.slug;
-                  const next = room.slug === ROOM_2.slug;
-                  return (
-                    <div
-                      key={room.slug}
-                      className={`rounded-xl border p-3 text-right flex flex-col gap-1 ${
-                        done
-                          ? 'border-primary/50 bg-primary/10'
-                          : next
-                            ? 'border-accent/50 bg-accent/10'
-                            : 'border-border bg-muted/50 opacity-70'
-                      }`}
-                    >
-                      <span className="text-xs font-bold text-foreground">
-                        {done ? '✔' : next ? '🔓' : '🔒'} חדר {room.order}
-                      </span>
-                      <span className="text-xs text-primary">{room.subject}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {done ? 'הושלם' : next ? 'נפתח כעת' : 'ייפתח בשיעור הבא'} • פרס: {room.reward?.icon}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
+              <p className="text-muted-foreground max-w-md text-sm">{MYSTERIES[0].rewardLine}</p>
+              <p className="text-xs text-accent max-w-md">
+                חלק מגבישי האור על מדשאת האור נדלקו מחדש. שתי תעלומות נותרו.
+              </p>
               <button
-                onClick={() => setGameState('room2Intro')}
+                onClick={() => finishMystery('mysteryA', 'map')}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
               >
-                המשך לחדר 2: התיבה האפלה ➡️
+                חזרה למפת האי 🗺️
               </button>
             </div>
           )}
+
 
           {gameState === 'room2' && (
             <div className="flex flex-col gap-4">
