@@ -177,6 +177,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     lens.position.z = -0.69;
     lens.rotation.y = Math.PI;
     torch.add(lens);
+    torch.scale.setScalar(0.6);
     scene.add(torch);
 
     // Visible volumetric-ish beam cone
@@ -464,8 +465,8 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
 
-      camera.position.set(Math.sin(orbit) * Math.cos(elev) * dist, 1.6 + Math.sin(elev) * dist * 0.55, Math.cos(orbit) * Math.cos(elev) * dist);
-      camera.lookAt(0, 1.85, 0);
+      camera.position.set(Math.sin(orbit) * Math.cos(elev) * dist, 2.0 + Math.sin(elev) * dist * 0.6, Math.cos(orbit) * Math.cos(elev) * dist);
+      camera.lookAt(0, 2.0, 0);
 
       // Room lighting toggle (the "lights off" part of the experiment)
       const on = roomLightRef.current;
@@ -486,14 +487,14 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       // Flashlight sits between the camera and the bench, held toward the objects
       const holdPos = new THREE.Vector3()
         .copy(camera.position)
-        .lerp(new THREE.Vector3(aim.x, aim.y + 0.5, aim.z), 0.22);
+        .lerp(new THREE.Vector3(aim.x, aim.y + 0.9, aim.z), 0.6);
       flash.position.copy(holdPos);
       torch.position.copy(holdPos);
       torch.lookAt(aim);
 
       const lit = beamRef.current;
       flash.intensity = THREE.MathUtils.lerp(flash.intensity, lit ? 240 : 0, dt * 10);
-      lensMat.emissiveIntensity = THREE.MathUtils.lerp(lensMat.emissiveIntensity, lit ? 4 : 0, dt * 10);
+      lensMat.emissiveIntensity = THREE.MathUtils.lerp(lensMat.emissiveIntensity, lit ? 1.6 : 0, dt * 10);
 
       // Beam cone geometry from torch head to aim point
       const dir = new THREE.Vector3().subVectors(aim, holdPos);
