@@ -495,8 +495,10 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.015, dt * 6);
       ceiling.intensity = THREE.MathUtils.lerp(ceiling.intensity, on ? 6 : 0, dt * 6);
       ceilingSpot.intensity = THREE.MathUtils.lerp(ceilingSpot.intensity, on ? 60 : 0, dt * 6);
-      // dim the image-based light too, otherwise "lights off" still looks lit
-      scene.environmentIntensity = THREE.MathUtils.lerp(scene.environmentIntensity ?? 1, on ? 1 : 0.06, dt * 6);
+      // drop the image-based light too, otherwise "lights off" still looks lit
+      const wantEnv = on ? envRT.texture : null;
+      if (scene.environment !== wantEnv) scene.environment = wantEnv;
+
 
       // Aim the flashlight where the cursor points
       raycaster.setFromCamera(pointer, camera);
