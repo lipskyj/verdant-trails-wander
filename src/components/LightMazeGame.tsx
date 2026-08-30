@@ -263,6 +263,61 @@ const LightMazeGame: React.FC = () => {
     }
   };
 
+
+  // ---- mystery D handlers (Observe → Investigate → Explain → Apply) ----
+  const toggleChain = (id: string) => {
+    setDChainOk(null);
+    setDChain((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  };
+
+  const submitChain = () => {
+    const ok = dChain.length === FLASHLIGHT_CHAIN.length && dChain.every((id, i) => id === FLASHLIGHT_CHAIN[i]);
+    setDChainOk(ok);
+    setDAttempts((a) => a + 1);
+    logEvent('mystery_attempt', { mystery: 'mysteryD', stage: 'chain', correct: ok });
+    setDFeedback(
+      ok
+        ? { text: 'שרשרת נכונה! מאנרגיה ועד לקרן שיוצאת. עכשיו שלב היישום — שחקו עם הסוללה.', ok: true }
+        : { text: 'הסדר לא מדויק. התחילו מהאנרגיה, המשיכו למה שמפיק אור, ורק אז למה שמחזיר/מעביר/חוסם.', ok: false }
+    );
+  };
+
+  const submitFail = () => {
+    if (dFailChoice === null) return;
+    const ok = dFailChoice === LAB_D.failExplain.correct;
+    setDAttempts((a) => a + 1);
+    logEvent('mystery_attempt', { mystery: 'mysteryD', stage: 'apply', correct: ok });
+    setDFeedback({ text: ok ? LAB_D.failExplain.feedbackOk : LAB_D.failExplain.feedbackNo, ok });
+    if (ok) {
+      setHasKit(true);
+      setTimeout(() => askPulse('d_mid', 'room4Done'), 800);
+    }
+  };
+
+  const submitZoom = () => {
+    if (zAnswer === null) return;
+    const ok = zAnswer === LAB_E.finalQuestion.correct;
+    logEvent('mystery_attempt', { mystery: 'mysteryE', correct: ok });
+    setZFeedback({ text: ok ? LAB_E.finalQuestion.feedbackOk : LAB_E.finalQuestion.feedbackNo, ok });
+    if (ok) {
+      setHasBook(true);
+      setTimeout(() => setGameState('room5Done'), 800);
+    }
+  };
+
+  // הסוללה נשחקת רק בשלב היישום (שכבה 4)
+  useEffect(() => {
+    if (gameState !== 'room4' || dLayer < 4) return;
+    if (dBattery < 15) setDFailSeen(true);
+  }, [gameState, dLayer, dBattery]);
+
+  // בדיקת דופק באמצע תעלומה ה' — אחרי שצללנו לרמה 4
+  useEffect(() => {
+    if (gameState !== 'room5') return;
+    if (zMaxLevel >= 4 && !pulseDone.includes('e_mid') && !pulse) askPulse('e_mid');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, zMaxLevel]);
+
   const submitConclusion = () => {
     if (conclusion === null) return;
     logEvent('mystery_attempt', { mystery: 'mysteryB', choice: conclusion, correct: conclusion === 1 });
@@ -829,6 +884,298 @@ const LightMazeGame: React.FC = () => {
             </div>
           )}
 
+          {gameState === 'room4' && (
+            <div className="flex flex-col gap-3">
+              <div className="game-panel p-4 flex flex-col gap-2">
+                <p className="text-xs md:text-sm font-medium text-primary">
+                  <span className="text-accent">{LAB_D.code}:</span> {LAB_D.name} — חקר בארבע שכבות.
+                </p>
+                <div className="flex flex-wrap gap-1.5 text-[11px]">
+                  {['1. תצפית וחיזוי', '2. גילוי חלקים', '3. הסבר השרשרת', '4. יישום עד כישלון'].map((lbl, i) => (
+                    <span
+                      key={lbl}
+                      className={`px-2 py-1 rounded-md border ${
+                        dLayer > i + 1
+                          ? 'bg-primary/15 text-primary border-primary/30'
+                          : dLayer === i + 1
+                            ? 'bg-accent/15 text-accent border-accent/40 font-bold'
+                            : 'bg-muted border-border text-muted-foreground'
+                      }`}
+                    >
+                      {dLayer > i + 1 ? '✔ ' : ''}
+                      {lbl}
+                    </span>
+                  ))}
+                </div>
+                {dFeedback && (
+                  <span
+                    className={`text-xs px-3 py-1.5 rounded-lg font-bold border ${
+                      dFeedback.ok
+                        ? 'bg-primary/15 text-primary border-primary/30'
+                        : 'bg-destructive/15 text-destructive border-destructive/30'
+                    }`}
+                  >
+                    {dFeedback.text}
+                  </span>
+                )}
+              </div>
+
+              <HintBox hints={MYSTERIES[3].hints} mystery="mysteryD" attempts={dAttempts} />
+
+              {/* layer 2 — investigate: lift a flap per part */}
+              <div className="game-panel p-4 flex flex-col gap-2">
+                <h3 className="text-xs font-bold text-primary">
+                  שכבה 2 — גילוי: הרימו דש לכל חלק ({dDiscovered.length}/{FLASHLIGHT_PARTS.length})
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  לחצו על חלק בסצנה או על כרטיס כאן — ותקראו מה הוא עושה בפועל.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {FLASHLIGHT_PARTS.map((part) => {
+                    const found = dDiscovered.includes(part.id);
+                    return (
+                      <button
+                        key={part.id}
+                        onClick={() => {
+                          setDSelected(part.id);
+                          setDDiscovered((prev) => (prev.includes(part.id) ? prev : [...prev, part.id]));
+                          if (dExplode < 0.4) setDExplode(0.6);
+                        }}
+                        className={`text-right text-[11px] p-2 rounded-lg border transition ${
+                          dSelected === part.id
+                            ? 'bg-primary/20 border-primary text-primary'
+                            : found
+                              ? 'bg-primary/10 border-primary/40'
+                              : 'bg-muted border-border hover:bg-muted/70'
+                        }`}
+                      >
+                        <span className="font-bold">
+                          {part.icon} {part.name}
+                        </span>
+                        <span className="block text-[10px] text-accent">{part.tag}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {dSelected && (
+                  <div className="text-[11px] bg-muted/60 border border-border rounded-lg p-2 leading-relaxed">
+                    {FLASHLIGHT_PARTS.find((x) => x.id === dSelected)?.role}
+                  </div>
+                )}
+                <label className="text-[11px] text-muted-foreground mt-1">מחוון פירוק המערכת</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.02}
+                  value={dExplode}
+                  onChange={(e) => setDExplode(Number(e.target.value))}
+                  className="w-full accent-primary"
+                />
+              </div>
+
+              {/* layer 3 — explain: rebuild the cause-and-effect chain */}
+              {dDiscovered.length === FLASHLIGHT_PARTS.length && (
+                <div className="game-panel p-4 flex flex-col gap-2">
+                  <h3 className="text-xs font-bold text-primary">שכבה 3 — הסבר: בנו את שרשרת הסיבה־תוצאה בסדר הנכון</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {dChain.map((id, i) => {
+                      const part = FLASHLIGHT_PARTS.find((x) => x.id === id)!;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => toggleChain(id)}
+                          className="text-[11px] px-2 py-1 rounded-md border bg-primary/15 border-primary/40 text-primary"
+                        >
+                          {i + 1}. {part.chainStep} ✕
+                        </button>
+                      );
+                    })}
+                    {dChain.length === 0 && (
+                      <span className="text-[11px] text-muted-foreground">לחצו על השלבים למטה לפי הסדר.</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border">
+                    {FLASHLIGHT_PARTS.filter((x) => !dChain.includes(x.id)).map((part) => (
+                      <button
+                        key={part.id}
+                        onClick={() => toggleChain(part.id)}
+                        className="text-[11px] px-2 py-1 rounded-md border bg-muted border-border hover:bg-muted/70"
+                      >
+                        {part.icon} {part.chainStep}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={submitChain}
+                    disabled={dChain.length !== FLASHLIGHT_PARTS.length}
+                    className="bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-bold py-2.5 rounded-xl transition"
+                  >
+                    שלחו את השרשרת ✅
+                  </button>
+                </div>
+              )}
+
+              {/* layer 4 — apply: wear the battery down until it fails */}
+              {dChainOk && (
+                <div className="game-panel p-4 flex flex-col gap-2">
+                  <h3 className="text-xs font-bold text-primary">שכבה 4 — יישום: שחקו את הסוללה עד שהמערכת נכשלת</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setDLightOn((v) => !v)}
+                      className={`text-[11px] px-3 py-1.5 rounded-lg border font-bold ${
+                        dLightOn ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted border-border'
+                      }`}
+                    >
+                      {dLightOn ? '🔘 מפסק דולק' : '🔘 מפסק כבוי'}
+                    </button>
+                    <span className="text-[11px] text-muted-foreground self-center">מצב סוללה: {dBattery}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={dBattery}
+                    onChange={(e) => setDBattery(Number(e.target.value))}
+                    className="w-full accent-primary"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    הורידו את מצב הסוללה והתבוננו בקרן על הקיר: קודם היא נחלשת ומהבהבת, ומתחת ל־15% הפנס נכבה לגמרי.
+                  </p>
+                  {dFailSeen ? (
+                    <>
+                      <p className="text-xs font-bold text-foreground">{LAB_D.failExplain.question}</p>
+                      {LAB_D.failExplain.options.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setDFailChoice(i)}
+                          className={`text-right text-[11px] p-2 rounded-lg border transition ${
+                            dFailChoice === i
+                              ? 'bg-primary/20 border-primary text-primary font-bold'
+                              : 'bg-muted border-border hover:bg-muted/70'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                      <button
+                        onClick={submitFail}
+                        disabled={dFailChoice === null}
+                        className="bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-bold py-2.5 rounded-xl transition"
+                      >
+                        שלחו הסבר ✅
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-accent">
+                      הורידו את הסוללה מתחת ל־15% כדי לראות את הכישלון — ואז תיפתח שאלת ההסבר.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {gameState === 'room5' && (
+            <div className="flex flex-col gap-3">
+              <div className="game-panel p-4 flex flex-col gap-2">
+                <p className="text-xs md:text-sm font-medium text-primary">
+                  <span className="text-accent">{LAB_E.code}:</span> {LAB_E.name} — לחצו על הנקודה הזוהרת בסצנה (או
+                  גללו עם גלגל העכבר) כדי לצלול רמה פנימה.
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {ZOOM_LEVELS.map((l) => (
+                    <button
+                      key={l.level}
+                      onClick={() => l.level <= zMaxLevel && setZLevel(l.level)}
+                      className={`flex-1 h-2 rounded-full transition ${
+                        l.level === zLevel ? 'bg-primary' : l.level <= zMaxLevel ? 'bg-primary/40' : 'bg-muted'
+                      }`}
+                      title={`רמה ${l.level}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  רמה {zLevel} מתוך {ZOOM_LEVELS.length} • {zoomData.scaleLabel}
+                </span>
+              </div>
+
+              <div className="game-panel p-4 flex flex-col gap-2">
+                <h3 className="text-sm font-bold text-primary">{zoomData.title}</h3>
+                <p className="text-xs text-foreground leading-relaxed">{zoomData.text}</p>
+                <div className="flex flex-col gap-1.5 pt-1 border-t border-border">
+                  {zoomData.parts.map((part) => (
+                    <div key={part.name} className="text-[11px] flex gap-2">
+                      <span className="text-primary font-bold whitespace-nowrap">{part.name}</span>
+                      <span className="text-muted-foreground">{part.note}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setZLevel((l) => Math.max(1, l - 1))}
+                    disabled={zLevel === 1}
+                    className="flex-1 text-[11px] py-2 rounded-lg border bg-muted border-border disabled:opacity-40"
+                  >
+                    ⬅️ רמה אחורה
+                  </button>
+                  <button
+                    onClick={() => {
+                      const next = Math.min(zLevel + 1, ZOOM_LEVELS.length);
+                      setZLevel(next);
+                      setZMaxLevel((m) => Math.max(m, next));
+                    }}
+                    disabled={zLevel === ZOOM_LEVELS.length}
+                    className="flex-1 text-[11px] py-2 rounded-lg border bg-primary text-primary-foreground border-primary font-bold disabled:opacity-40"
+                  >
+                    {zoomData.hotspot}
+                  </button>
+                </div>
+              </div>
+
+              <HintBox hints={MYSTERIES[4].hints} mystery="mysteryE" attempts={zFeedback && !zFeedback.ok ? 1 : 0} />
+
+              {zMaxLevel === ZOOM_LEVELS.length && (
+                <div className="game-panel p-4 flex flex-col gap-2">
+                  <h3 className="text-xs font-bold text-primary">סוגרים את הספר — שאלת סיכום</h3>
+                  <p className="text-xs font-bold text-foreground">{LAB_E.finalQuestion.question}</p>
+                  {LAB_E.finalQuestion.options.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setZAnswer(i)}
+                      className={`text-right text-[11px] p-2 rounded-lg border transition ${
+                        zAnswer === i
+                          ? 'bg-primary/20 border-primary text-primary font-bold'
+                          : 'bg-muted border-border hover:bg-muted/70'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                  <button
+                    onClick={submitZoom}
+                    disabled={zAnswer === null}
+                    className="bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-bold py-2.5 rounded-xl transition"
+                  >
+                    שלחו תשובה ✅
+                  </button>
+                  {zFeedback && (
+                    <span
+                      className={`text-xs px-3 py-1.5 rounded-lg font-bold border ${
+                        zFeedback.ok
+                          ? 'bg-primary/15 text-primary border-primary/30'
+                          : 'bg-destructive/15 text-destructive border-destructive/30'
+                      }`}
+                    >
+                      {zFeedback.text}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Overlays */}
@@ -1039,6 +1386,85 @@ const LightMazeGame: React.FC = () => {
           </div>
         )}
 
+
+        {gameState === 'room4Intro' && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
+            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
+              <div className="text-4xl">{LAB_D.icon}</div>
+              <h2 className="text-xl font-bold text-primary">{LAB_D.title}</h2>
+              <p className="text-muted-foreground text-sm leading-relaxed">{LAB_D.guideIntro}</p>
+              <p className="text-sm font-bold text-foreground">{LAB_D.predictQuestion}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {LAB_D.predictOptions.map((opt, i) => (
+                  <button
+                    key={opt.label}
+                    onClick={() => {
+                      setD4Predict(i);
+                      setDFeedback({ text: opt.why, ok: opt.ok });
+                      logEvent('mystery_attempt', { mystery: 'mysteryD', stage: 'predict', correct: opt.ok });
+                      setGameState('room4');
+                    }}
+                    className="bg-muted hover:bg-muted/70 border border-border p-3 rounded-xl text-xs font-bold"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-muted-foreground">שכבה 1 — תצפית וחיזוי: אין ציון, רק התחייבות להשערה.</span>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'room4Done' && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
+            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
+              <div className="text-5xl animate-bounce">{LAB_D.reward.icon}</div>
+              <h2 className="text-2xl font-bold text-primary">קיבלתם את {LAB_D.reward.name}!</h2>
+              <p className="text-sm text-foreground">{LAB_D.rewardLine}</p>
+              <button
+                onClick={() => finishMystery('mysteryD', 'map')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
+              >
+                חזרה למפת האי 🗺️
+              </button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'room5Intro' && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
+            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
+              <div className="text-4xl">{LAB_E.icon}</div>
+              <h2 className="text-xl font-bold text-primary">{LAB_E.title}</h2>
+              <p className="text-muted-foreground text-sm leading-relaxed">{LAB_E.guideIntro}</p>
+              <p className="text-[11px] text-accent">
+                שש רמות: אי → מדשאה → גוף → משטח → קרן → עין. לחיצה על הנקודה הזוהרת מקרבת רמה אחת.
+              </p>
+              <button
+                onClick={() => setGameState('room5')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
+              >
+                לפתוח את ספר הזום 🔎
+              </button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'room5Done' && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
+            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
+              <div className="text-5xl animate-bounce">{LAB_E.reward.icon}</div>
+              <h2 className="text-2xl font-bold text-primary">קיבלתם את {LAB_E.reward.name}!</h2>
+              <p className="text-sm text-foreground">{LAB_E.rewardLine}</p>
+              <button
+                onClick={() => finishMystery('mysteryE', 'map')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
+              >
+                חזרה למפת האי 🗺️
+              </button>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
