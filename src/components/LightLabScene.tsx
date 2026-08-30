@@ -685,8 +685,9 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       </div>
 
       <div className="absolute bottom-3 left-3 game-panel px-3 py-1 text-xs text-muted-foreground">
-        הזזת עכבר - כיוון הפנס • גרירה - סיבוב המעבדה • גלגלת - זום • לחיצה על גוף - בדיקה
+        הזזת עכבר - כיוון הפנס • גרירה - סיבוב המעבדה • גלגלת - זום • לחיצה על גוף - בדיקה • L - אור החדר • F - פנס
       </div>
+
     </div>
   );
 };
