@@ -203,17 +203,47 @@ const LightMazeGame: React.FC = () => {
 
           {gameState === 'unlocked' && (
             <div className="flex flex-col items-center justify-center my-auto gap-5 game-panel p-8 text-center">
-              <div className="text-5xl animate-bounce">🔦</div>
-              <h2 className="text-2xl font-bold text-primary">קיבלתם את פנס הקסם!</h2>
+              <div className="text-5xl animate-bounce">{lesson.reward?.icon ?? '🔦'}</div>
+              <h2 className="text-2xl font-bold text-primary">קיבלתם את {lesson.reward?.name ?? 'פנס הקסם'}!</h2>
               <p className="text-muted-foreground max-w-md text-sm">{SIMULATION_DATA.narrative.unlocked}</p>
+
+              {/* מפת המבוך - שיעורים עתידיים נטענים מרשימת השיעורים */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
+                {LESSONS.map((room) => {
+                  const done = room.slug === lesson.slug;
+                  return (
+                    <div
+                      key={room.slug}
+                      className={`rounded-xl border p-3 text-right flex flex-col gap-1 ${
+                        done ? 'border-primary/50 bg-primary/10' : 'border-border bg-muted/50 opacity-70'
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-foreground">
+                        {done ? '✔' : '🔒'} חדר {room.order}
+                      </span>
+                      <span className="text-xs text-primary">{room.subject}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {done ? 'הושלם' : 'ייפתח בשיעור הבא'} • פרס: {room.reward?.icon}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
               <button
-                onClick={() => setFeedback({ text: 'חדר 2 (קו ישר וחומרים שקופים) בפיתוח - בקרוב!', ok: true })}
+                onClick={() =>
+                  setFeedback({
+                    text: `${LESSONS[1].title} בפיתוח - בקרוב!`,
+                    ok: true,
+                  })
+                }
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
               >
                 המשך לחדר הבא במבוך ➡️
               </button>
             </div>
           )}
+
         </div>
 
         {/* Overlays */}
