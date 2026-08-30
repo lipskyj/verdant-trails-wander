@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import LightLabScene from './LightLabScene';
 import DarkBoxScene from './DarkBoxScene';
 import TransparencyScene from './TransparencyScene';
+import FlashlightAnatomyScene from './FlashlightAnatomyScene';
+import ZoomBookScene from './ZoomBookScene';
+import { LAB_D, LAB_E, FLASHLIGHT_PARTS, FLASHLIGHT_CHAIN, ZOOM_LEVELS } from '@/content/labs';
 import GuideQuiz from './island/GuideQuiz';
 import IslandMap from './island/IslandMap';
 import HintBox from './island/HintBox';
@@ -55,6 +58,12 @@ type GameState =
   | 'room3Intro'
   | 'room3'
   | 'room3Done'
+  | 'room4Intro'
+  | 'room4'
+  | 'room4Done'
+  | 'room5Intro'
+  | 'room5'
+  | 'room5Done'
   | 'report';
 
 const LightMazeGame: React.FC = () => {
@@ -75,6 +84,28 @@ const LightMazeGame: React.FC = () => {
   const [hasFlashlight, setHasFlashlight] = useState(false);
   const [hasTube, setHasTube] = useState(false);
   const [hasLens, setHasLens] = useState(false);
+  const [hasKit, setHasKit] = useState(false);
+  const [hasBook, setHasBook] = useState(false);
+
+  // ---- mystery D (flashlight teardown, four inquiry layers) ----
+  const [d4Predict, setD4Predict] = useState<number | null>(null);
+  const [dExplode, setDExplode] = useState(0);
+  const [dSelected, setDSelected] = useState<string | null>(null);
+  const [dDiscovered, setDDiscovered] = useState<string[]>([]);
+  const [dChain, setDChain] = useState<string[]>([]);
+  const [dChainOk, setDChainOk] = useState<boolean | null>(null);
+  const [dBattery, setDBattery] = useState(100);
+  const [dLightOn, setDLightOn] = useState(true);
+  const [dFailSeen, setDFailSeen] = useState(false);
+  const [dFailChoice, setDFailChoice] = useState<number | null>(null);
+  const [dFeedback, setDFeedback] = useState<{ text: string; ok: boolean } | null>(null);
+  const [dAttempts, setDAttempts] = useState(0);
+
+  // ---- mystery E (zoom book) ----
+  const [zLevel, setZLevel] = useState(1);
+  const [zMaxLevel, setZMaxLevel] = useState(1);
+  const [zAnswer, setZAnswer] = useState<number | null>(null);
+  const [zFeedback, setZFeedback] = useState<{ text: string; ok: boolean } | null>(null);
 
 
   // room 2 state
@@ -102,6 +133,11 @@ const LightMazeGame: React.FC = () => {
   const sceneActive = gameState === 'room1' || gameState === 'peerCheck' || gameState === 'unlocked';
   const room2Active = gameState === 'room2' || gameState === 'room2Intro' || gameState === 'room2Done';
   const room3Active = gameState === 'room3' || gameState === 'room3Intro' || gameState === 'room3Done';
+  const room4Active = gameState === 'room4' || gameState === 'room4Intro' || gameState === 'room4Done';
+  const room5Active = gameState === 'room5' || gameState === 'room5Intro' || gameState === 'room5Done';
+
+  const dLayer = d4Predict === null ? 1 : dDiscovered.length < FLASHLIGHT_PARTS.length ? 2 : dChainOk ? 4 : 3;
+  const zoomData = ZOOM_LEVELS[Math.min(zLevel, ZOOM_LEVELS.length) - 1];
 
   const activeSampleData = ROOM_3_SAMPLES.find((s) => s.id === activeSample) ?? null;
   const canSubmitRoom3 =
@@ -129,6 +165,8 @@ const LightMazeGame: React.FC = () => {
     if (slug === 'mysteryA') setGameState(solvedMysteries.includes('mysteryA') ? 'room1' : 'pathSelect');
     if (slug === 'mysteryB') setGameState('room2Intro');
     if (slug === 'mysteryC') setGameState('room3Intro');
+    if (slug === 'mysteryD') setGameState('room4Intro');
+    if (slug === 'mysteryE') setGameState('room5Intro');
   };
 
   // mark the initially shown sample as measured while the lamp is on
@@ -249,7 +287,11 @@ const LightMazeGame: React.FC = () => {
             {ISLAND.title} • {ISLAND.mission}
           </span>
           <h1 className="text-sm md:text-base font-bold text-primary">
-            {room3Active
+            {room5Active
+              ? `${MYSTERIES[4].code} — ${MYSTERIES[4].name}`
+              : room4Active
+              ? `${MYSTERIES[3].code} — ${MYSTERIES[3].name}`
+              : room3Active
               ? `${MYSTERIES[2].code} — ${MYSTERIES[2].name}`
               : room2Active
                 ? `${MYSTERIES[1].code} — ${MYSTERIES[1].name}`
@@ -274,13 +316,40 @@ const LightMazeGame: React.FC = () => {
           <span className={`text-lg ${hasLens ? 'opacity-100' : 'opacity-30'}`} title="עדשת החוקרים">
             🔬
           </span>
+          <span className={`text-lg ${hasKit ? 'opacity-100' : 'opacity-30'}`} title="ארגז הפירוק">
+            🧰
+          </span>
+          <span className={`text-lg ${hasBook ? 'opacity-100' : 'opacity-30'}`} title="ספר החוקרים">
+            📖
+          </span>
         </div>
       </header>
 
       <main className="absolute inset-0 overflow-hidden">
         {/* 3D stage — fills the whole experience */}
         <div className="absolute inset-0 bg-background">
-          {room3Active ? (
+          {room5Active ? (
+            <ZoomBookScene
+              level={zLevel}
+              onZoomIn={() => {
+                const next = Math.min(zLevel + 1, ZOOM_LEVELS.length);
+                setZLevel(next);
+                setZMaxLevel((m) => Math.max(m, next));
+              }}
+              onZoomOut={() => setZLevel((l) => Math.max(1, l - 1))}
+            />
+          ) : room4Active ? (
+            <FlashlightAnatomyScene
+              explode={dExplode}
+              selected={dSelected}
+              onSelect={(id) => {
+                setDSelected(id);
+                setDDiscovered((p) => (p.includes(id) ? p : [...p, id]));
+              }}
+              battery={dBattery}
+              lightOn={dLightOn}
+            />
+          ) : room3Active ? (
             <TransparencyScene
               transmission={activeSampleData?.transmission ?? 0}
               sampleName={activeSampleData?.name ?? 'דוגמה'}
