@@ -82,7 +82,7 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0x8fb2ff, 0x121018, 0.45));
+    scene.add(new THREE.HemisphereLight(0x8fb2ff, 0x121018, 0.6));
     const key = new THREE.DirectionalLight(0xffffff, 1.0);
     key.position.set(2, 7, 6);
     key.castShadow = true;
@@ -193,31 +193,32 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
       new THREE.PlaneGeometry(3.2, 2.6),
       new THREE.MeshStandardMaterial({ color: 0xe8eaf0, roughness: 0.9 })
     );
-    screen.rotation.y = Math.PI / 2;
-    screen.position.set(3.3, 2.75, 0);
+    screen.rotation.y = -0.5; // angled so the lit face points at the camera
+    screen.position.set(3.1, 2.75, 0);
     screen.receiveShadow = true;
     scene.add(screen);
     const screenFrame = new THREE.Mesh(
       new THREE.BoxGeometry(0.12, 2.9, 3.5),
       new THREE.MeshStandardMaterial({ color: 0x2b3442, roughness: 0.5, metalness: 0.5 })
     );
-    screenFrame.position.set(3.4, 2.75, 0);
+    screenFrame.rotation.y = -0.5;
+    screenFrame.position.set(3.17, 2.75, -0.13);
     scene.add(screenFrame);
 
     const patchMat = new THREE.MeshBasicMaterial({ color: 0xfff3cd, transparent: true, opacity: 0 });
     const patch = new THREE.Mesh(new THREE.CircleGeometry(0.85, 40), patchMat);
-    patch.rotation.y = Math.PI / 2;
-    patch.position.set(3.22, 2.55, 0);
+    patch.rotation.y = -0.5;
+    patch.position.set(3.08, 2.55, 0.04);
     scene.add(patch);
 
     const screenLabel = makeLabel('מסך הבדיקה');
-    screenLabel.sprite.position.set(3.3, 4.35, 0);
+    screenLabel.sprite.position.set(3.1, 4.3, 0);
     scene.add(screenLabel.sprite);
 
     // measurement readout above the screen
     const meter = makeLabel('0% מהאור עבר');
     meter.sprite.scale.set(2.4, 0.6, 1);
-    meter.sprite.position.set(1.9, 1.15, 0);
+    meter.sprite.position.set(2.5, 1.25, 1.5);
     scene.add(meter.sprite);
 
     // orbit
