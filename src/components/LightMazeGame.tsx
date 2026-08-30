@@ -101,20 +101,20 @@ const LightMazeGame: React.FC = () => {
       </header>
 
       <main className="flex-1 flex flex-col relative overflow-hidden">
-        {/* 3D chamber */}
-        <div ref={mountRef} className="w-full h-56 md:h-2/5 bg-background relative border-b border-border">
-          {sceneActive && (
-            <>
-              <div className="absolute bottom-3 right-3 game-panel px-3 py-1 text-xs text-primary">
-                מבוך אופטי תלת־ממדי • מסלול פעיל:{' '}
-                {learningPath === 'producersFirst' ? 'מפיקים תחילה' : 'מחזירים תחילה'}
-              </div>
-              <div className="absolute bottom-3 left-3 game-panel px-3 py-1 text-xs text-muted-foreground">
-                W/A/S/D או חצים - תנועה • גרירה עם העכבר - הסתכלות
-              </div>
-            </>
+        {/* Hyper-real optics lab */}
+        <div className="w-full h-[46vh] md:h-[52vh] bg-background relative border-b border-border">
+          {sceneActive ? (
+            <LightLabScene
+              objects={SIMULATION_DATA.sortingItems}
+              onInspect={(id) => setSelectedItemInfo(SIMULATION_DATA.sortingItems.find((i) => i.id === id) ?? null)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
+              מעבדת האופטיקה תיפתח לאחר בחירת מסלול החקר
+            </div>
           )}
         </div>
+
 
         {/* Interactive panel */}
         <div className="flex-1 p-4 md:p-6 flex flex-col gap-4 overflow-y-auto">
