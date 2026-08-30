@@ -457,6 +457,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     const aim = new THREE.Vector3(0, 1.9, 0);
     const clock = new THREE.Clock();
     let raf = 0;
+    let lastKey = '';
 
     const animate = () => {
       raf = requestAnimationFrame(animate);
@@ -532,7 +533,11 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         const lux = Math.round(beamLux + selfLux + roomLux);
         if (inCone && (!best || lux > best.lux)) best = { name: g.userData.name, lux, self: !!g.userData.self };
       });
-      setReadout(best);
+      const key = best ? `${best.name}|${Math.round(best.lux / 25)}` : 'none';
+      if (key !== lastKey) {
+        lastKey = key;
+        setReadout(best);
+      }
 
       renderer.render(scene, camera);
     };
