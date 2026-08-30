@@ -28,7 +28,7 @@ const makeLabel = (text: string, color = '#e8f0ff') => {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.direction = 'rtl';
-  ctx.fillText(text, 256, 66);
+  ctx.fillText(text, 256, 66, 470);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
@@ -48,7 +48,7 @@ const makeLabel = (text: string, color = '#e8f0ff') => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.direction = 'rtl';
-      ctx.fillText(t, 256, 66);
+      ctx.fillText(t, 256, 66, 470);
       tex.needsUpdate = true;
     } };
 };

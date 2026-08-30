@@ -235,7 +235,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#e8f5ff';
       ctx.direction = 'rtl';
-      ctx.fillText(text, 256, 66);
+      ctx.fillText(text, 256, 66, 470);
       const tex = new THREE.CanvasTexture(c);
       tex.colorSpace = THREE.SRGBColorSpace;
       labelTextures.push(tex);
