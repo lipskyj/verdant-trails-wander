@@ -117,23 +117,23 @@ const ZoomBookScene: React.FC<Props> = ({ level, onZoomIn, onZoomOut }) => {
     mkLevel(0, (g) => {
       const planet = new THREE.Mesh(new THREE.SphereGeometry(2.4, 48, 36), solid(0x2f6fb0, 0.7));
       const island = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 18), solid(0x4e8b53, 0.8));
-      island.position.set(1.1, 0.7, 1.9);
+      island.position.set(0.9, 0.6, 2.0);
       island.scale.set(1, 0.55, 0.7);
       const sun = new THREE.Mesh(new THREE.SphereGeometry(0.85, 28, 20), glow(0xffd166));
-      sun.position.set(-5.2, 2.2, 2);
+      sun.position.set(5.4, 2.6, 2);
       const sunLight = new THREE.PointLight(0xffe6a8, 22, 30);
       sunLight.position.copy(sun.position);
       const rayMat = new THREE.MeshBasicMaterial({ color: 0xffe9b0, transparent: true, opacity: 0.35 });
       for (let i = -1; i <= 1; i++) {
         const ray = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.05, 0.05), rayMat);
-        ray.position.set(-2.6, 2.2 + i * 1.1, 1.6);
+        ray.position.set(2.5, 2.4 + i * 1.1, 1.6);
         g.add(ray);
       }
-      g.add(planet, island, sun, sunLight, makeLabel('☀️ שמש — מפיקת אור', '#fde68a', 2.2).translateY(3.6));
+      g.add(planet, island, sun, sunLight, (() => { const l = makeLabel('☀️ שמש — מפיקת אור', '#fde68a', 2.2); l.position.set(5.4, 4.0, 2); return l; })());
       const nightLbl = makeLabel('צד הלילה — האור לא מתעקל', '#c7d2fe', 2.4);
-      nightLbl.position.set(2.6, -2.4, 0.6);
+      nightLbl.position.set(-3.2, -2.6, 0.6);
       g.add(nightLbl);
-      return addHotspot(g, 1.4, 1.6, 'זום למדשאה');
+      return addHotspot(g, 1.2, 1.5, 'זום למדשאה');
     });
 
     // ---------- level 2: the meadow, straight rays + shadow ----------
