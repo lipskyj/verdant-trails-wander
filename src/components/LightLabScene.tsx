@@ -70,6 +70,18 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
   beamRef.current = beamOn;
   inspectRef.current = onInspect;
 
+  // keyboard shortcuts: L = room light, F = flashlight
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === 'l' || k === 'ק') setRoomLight((v) => !v);
+      if (k === 'f' || k === 'כ') setBeamOn((v) => !v);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
