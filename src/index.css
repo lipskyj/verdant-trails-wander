@@ -72,29 +72,6 @@
     box-shadow: var(--game-shadow);
   }
 
-  .energy-bar {
-    background: linear-gradient(90deg, 
-      hsl(var(--sunlight)) 0%, 
-      hsl(var(--sunlight-glow)) 100%
-    );
-    box-shadow: 0 0 20px hsl(var(--sunlight) / 0.5);
-  }
-
-  .growth-bar {
-    background: linear-gradient(90deg, 
-      hsl(var(--leaf-dark)) 0%, 
-      hsl(var(--leaf-bright)) 100%
-    );
-    box-shadow: 0 0 15px hsl(var(--growth) / 0.4);
-  }
-
-  .sunlight-particle {
-    background: radial-gradient(circle, 
-      hsl(var(--sunlight-glow)) 0%, 
-      hsl(var(--sunlight)) 50%,
-      transparent 100%
-    );
-  }
 }
 
 @layer utilities {
