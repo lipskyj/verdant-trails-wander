@@ -3,6 +3,8 @@
 // כל התוכן הסיפורי, השערים (Pre/Post), בדיקות הדופק והרמזים — כדאטה.
 // ============================================================
 
+import { LAB_D, LAB_E } from './labs';
+
 export type IslandZoneStatus = 'available' | 'active' | 'locked';
 
 export interface IslandZone {
@@ -16,7 +18,7 @@ export interface IslandZone {
 }
 
 export interface MysteryMeta {
-  slug: 'mysteryA' | 'mysteryB' | 'mysteryC';
+  slug: 'mysteryA' | 'mysteryB' | 'mysteryC' | 'mysteryD' | 'mysteryE';
   order: number;
   code: string; // "תעלומה א'"
   name: string;
@@ -45,7 +47,7 @@ export const ISLAND = {
   guideIcon: '🧭',
   clubName: 'מועדון החוקרים הסקרנים',
   distressCall:
-    'קריאת מצוקה הגיעה למועדון החוקרים הסקרנים: על אי התעלומות הנשכח, מדשאת האור תקועה בדמדומים. גבישי האור שהאירו אותה כבו, והאי כולו שקע באפור. נשלחתם לאי כחוקרים — עליכם לפצח שלוש תעלומות כדי להאיר את המדשאה מחדש.',
+    'קריאת מצוקה הגיעה למועדון החוקרים הסקרנים: על אי התעלומות הנשכח, מדשאת האור תקועה בדמדומים. גבישי האור שהאירו אותה כבו, והאי כולו שקע באפור. נשלחתם לאי כחוקרים — עליכם לפצח חמש תעלומות כדי להאיר את המדשאה מחדש.',
   guideWelcome:
     'ברוכים הבאים, חוקרים. אני שומר האי הצעיר. לפני שאפתח לכם את השער — מועדון החוקרים מחייב מבחן כניסה קצר. אין תשובות "טיפשיות", זה רק כדי לדעת מאיפה מתחילים.',
   meadowLit:
@@ -59,7 +61,7 @@ export const ISLAND_ZONES: IslandZone[] = [
     name: 'מדשאת האור',
     icon: '🌤️',
     subject: 'אנרגיית קרינה — אור',
-    teaser: 'שלוש תעלומות אור: מי מדליק, לאן האור הולך, ומה עוצר אותו.',
+    teaser: 'חמש תעלומות אור: מי מדליק, לאן האור הולך, מה עוצר אותו, איך פנס בנוי, ומה קורה מהשמש ועד לעין.',
     status: 'active',
   },
   {
@@ -132,6 +134,32 @@ export const MYSTERIES: MysteryMeta[] = [
     ],
   },
 ];
+
+// ---- שתי התעלומות הנוספות (התוכן המלא שלהן ב-src/content/labs.ts) ----
+MYSTERIES.push(
+  {
+    slug: 'mysteryD',
+    order: 4,
+    code: LAB_D.code,
+    name: LAB_D.name,
+    icon: LAB_D.icon,
+    guideIntro: LAB_D.guideIntro,
+    objective: LAB_D.objective,
+    rewardLine: LAB_D.rewardLine,
+    hints: [...LAB_D.hints],
+  },
+  {
+    slug: 'mysteryE',
+    order: 5,
+    code: LAB_E.code,
+    name: LAB_E.name,
+    icon: LAB_E.icon,
+    guideIntro: LAB_E.guideIntro,
+    objective: LAB_E.objective,
+    rewardLine: LAB_E.rewardLine,
+    hints: [...LAB_E.hints],
+  }
+);
 
 // ---------- שער כניסה (Pre) — Hard gate, "מבחן הכניסה של המועדון" ----------
 export const PRE_TEST: Mcq[] = [
@@ -243,6 +271,31 @@ export const PULSE_CHECKS: Record<string, Mcq> = {
     correct: 1,
     feedbackOk: 'מושלם — חיברתם את שלוש התעלומות יחד! ✨',
     feedbackNo: 'חשבו: אור נע בקו ישר, וכשגוף אטום עומד בדרך — נוצר אזור בלי אור.',
+  },
+  d_mid: {
+    id: 'd_mid',
+    placement: "אמצע תעלומה ד'",
+    guide: 'פירקתם את הפנס. בדיקת דופק:',
+    question: 'איזה חלק בפנס הוא היחיד שמפיק אור בעצמו?',
+    options: ['המחזיר המלוטש', 'העדשה השקופה', 'חוט הלהט בנורה', 'המעטפת האטומה'],
+    correct: 2,
+    feedbackOk: 'נכון — כל השאר רק מחזירים, מעבירים או חוסמים.',
+    feedbackNo: 'המחזיר והעדשה לא יוצרים אור — הם מטפלים באור שכבר נוצר בחוט הלהט.',
+  },
+  e_mid: {
+    id: 'e_mid',
+    placement: "אמצע תעלומה ה'",
+    guide: 'צללנו כמה רמות בספר הזום:',
+    question: 'למה נוצר צל מאחורי עץ במדשאה?',
+    options: [
+      'האור נבלע בעץ והופך לצל',
+      'האור נע בקו ישר והעץ האטום חוסם אותו',
+      'הצל הוא אור כהה',
+      'העץ מפיק אור אפור',
+    ],
+    correct: 1,
+    feedbackOk: 'בדיוק — קו ישר + גוף אטום = צל.',
+    feedbackNo: 'חזרו לרמה 2: הקרניים ישרות, והעץ האטום עומד בדרכן.',
   },
 };
 
