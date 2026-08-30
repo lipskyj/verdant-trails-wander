@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import LightLabScene from './LightLabScene';
 import DarkBoxScene from './DarkBoxScene';
-import { LESSONS, ROOM_1, ROOM_2, type SortingItem } from '@/content/lessons';
+import TransparencyScene from './TransparencyScene';
+import {
+  LESSONS,
+  ROOM_1,
+  ROOM_2,
+  ROOM_3,
+  ROOM_3_SAMPLES,
+  type MaterialClass,
+  type SortingItem,
+} from '@/content/lessons';
+
 
 // --- CONTENT AS DATA (curriculum lives in src/content/lessons.ts) ---
 const lesson = ROOM_1;
@@ -25,13 +35,17 @@ type Item = SortingItem;
 type Choice = 'producer' | 'reflector';
 type GameState =
   | 'intro'
+
   | 'pathSelect'
   | 'room1'
   | 'peerCheck'
   | 'unlocked'
   | 'room2Intro'
   | 'room2'
-  | 'room2Done';
+  | 'room2Done'
+  | 'room3Intro'
+  | 'room3'
+  | 'room3Done';
 
 const LightMazeGame: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('intro');
@@ -44,21 +58,59 @@ const LightMazeGame: React.FC = () => {
   const [selectedItemInfo, setSelectedItemInfo] = useState<Item | null>(null);
   const [hasFlashlight, setHasFlashlight] = useState(false);
   const [hasTube, setHasTube] = useState(false);
+  const [hasLens, setHasLens] = useState(false);
 
   // room 2 state
   const [prediction, setPrediction] = useState<'yes' | 'no' | null>(null);
   const [bent, setBent] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [seen, setSeen] = useState(false);
   const [testedStraight, setTestedStraight] = useState(false);
   const [testedBent, setTestedBent] = useState(false);
   const [conclusion, setConclusion] = useState<number | null>(null);
   const [room2Feedback, setRoom2Feedback] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // room 3 state
+  const [r3Prediction, setR3Prediction] = useState<string>('זכוכית שקופה');
+  const [activeSample, setActiveSample] = useState<number>(ROOM_3_SAMPLES[0].id);
+  const [lampOn, setLampOn] = useState(true);
+  const [measuredIds, setMeasuredIds] = useState<number[]>([]);
+  const [r3Choices, setR3Choices] = useState<Record<number, MaterialClass>>({});
+  const [r3Wrong, setR3Wrong] = useState<number[]>([]);
+  const [room3Feedback, setRoom3Feedback] = useState<{ text: string; ok: boolean } | null>(null);
 
   const allItems = SIMULATION_DATA.sortingItems;
   const total = allItems.length;
 
   const sceneActive = gameState === 'room1' || gameState === 'peerCheck' || gameState === 'unlocked';
   const room2Active = gameState === 'room2' || gameState === 'room2Intro' || gameState === 'room2Done';
+  const room3Active = gameState === 'room3' || gameState === 'room3Intro' || gameState === 'room3Done';
+
+  const activeSampleData = ROOM_3_SAMPLES.find((s) => s.id === activeSample) ?? null;
+  const canSubmitRoom3 =
+    measuredIds.length === ROOM_3_SAMPLES.length &&
+    ROOM_3_SAMPLES.every((s) => r3Choices[s.id] !== undefined);
+
+  // mark the initially shown sample as measured while the lamp is on
+  useEffect(() => {
+    if (gameState !== 'room3' || !lampOn) return;
+    setMeasuredIds((p) => (p.includes(activeSample) ? p : [...p, activeSample]));
+  }, [gameState, lampOn, activeSample]);
+
+  const submitRoom3 = () => {
+    const wrong = ROOM_3_SAMPLES.filter((s) => r3Choices[s.id] !== s.klass).map((s) => s.id);
+    setR3Wrong(wrong);
+    if (wrong.length === 0) {
+      setHasLens(true);
+      setRoom3Feedback({ text: 'מיון מושלם! פיצחתם את סוד השקיפות 🌟', ok: true });
+      setTimeout(() => setGameState('room3Done'), 900);
+    } else {
+      setRoom3Feedback({
+        text: `${ROOM_3_SAMPLES.length - wrong.length} נכונות. בחומרים המסומנים באדום — חזרו למדידה: מעל 70% שקוף, 15%–70% חלקית, מתחת ל־15% אטום.`,
+        ok: false,
+      });
+    }
+  };
 
   useEffect(() => {
     setItems([...allItems].sort(() => Math.random() - 0.5));
@@ -68,6 +120,7 @@ const LightMazeGame: React.FC = () => {
     if (!learningPath) return items;
     const first = learningPath === 'producersFirst' ? 'producer' : 'reflector';
     return [...items].sort((a, b) => (a.type === first ? -1 : 0) - (b.type === first ? -1 : 0));
+
   }, [items, learningPath]);
 
   const producersBin = allItems.filter((i) => solvedIds.includes(i.id) && i.type === 'producer');
@@ -127,7 +180,7 @@ const LightMazeGame: React.FC = () => {
             {SIMULATION_DATA.meta.badge}
           </span>
           <h1 className="text-sm md:text-base font-bold text-primary">
-            {room2Active ? ROOM_2.title : SIMULATION_DATA.meta.title}
+            {room3Active ? ROOM_3.title : room2Active ? ROOM_2.title : SIMULATION_DATA.meta.title}
           </h1>
         </div>
         <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border border-border">
@@ -138,14 +191,24 @@ const LightMazeGame: React.FC = () => {
           <span className={`text-lg ${hasTube ? 'opacity-100' : 'opacity-30'}`} title="צינור החוקרים">
             📏
           </span>
+          <span className={`text-lg ${hasLens ? 'opacity-100' : 'opacity-30'}`} title="עדשת החוקרים">
+            🔬
+          </span>
         </div>
       </header>
 
       <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* 3D stage */}
         <div className="w-full h-[46vh] md:h-[52vh] bg-background relative border-b border-border">
-          {room2Active ? (
-            <DarkBoxScene bent={bent} offset={offset} />
+          {room3Active ? (
+            <TransparencyScene
+              transmission={activeSampleData?.transmission ?? 0}
+              sampleName={activeSampleData?.name ?? 'דוגמה'}
+              color={activeSampleData?.color ?? 0xbfe6ff}
+              lightOn={lampOn}
+            />
+          ) : room2Active ? (
+            <DarkBoxScene bent={bent} offset={offset} onSeen={setSeen} />
           ) : sceneActive ? (
             <LightLabScene
               objects={allItems}
@@ -157,6 +220,7 @@ const LightMazeGame: React.FC = () => {
             </div>
           )}
         </div>
+
 
         {/* Interactive panel */}
         <div className="flex-1 p-4 md:p-6 flex flex-col gap-4 overflow-y-auto">
@@ -341,12 +405,36 @@ const LightMazeGame: React.FC = () => {
           {gameState === 'room2' && (
             <div className="flex flex-col gap-4">
               <div className="game-panel p-4 flex flex-col gap-2">
-                <p className="text-xs md:text-sm font-medium text-primary">
-                  שלב 2: {ROOM_2.narrative.task} כופפו את הצינור, הזיזו אותו מול החור, וראו מתי העין רואה את הנר.
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs md:text-sm font-medium text-primary">
+                    שלב 2: הביטו דרך הצינור אל הנר שבתוך התיבה האפלה. שנו את צורת הצינור וכוונו אותו מול חור התיבה —
+                    ובדקו מתי העין רואה את הלהבה.
+                  </p>
+                  <span
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg border whitespace-nowrap ${
+                      seen
+                        ? 'bg-primary/15 text-primary border-primary/40'
+                        : 'bg-destructive/15 text-destructive border-destructive/40'
+                    }`}
+                  >
+                    {seen ? '✔ רואים את להבת הנר' : '✖ חשוך — האור נחסם'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  הקו הצהוב בסצנה הוא קרן האור. שימו לב איפה היא נעצרת: בנקודה האדומה האור נחסם ולכן לא מגיע לעין.
+                  התחזית שלכם הייתה: {prediction === 'yes' ? 'כן, נראה את הנר גם בצינור מכופף' : 'לא, לא נראה את הנר בצינור מכופף'}.
                 </p>
-                <p className="text-[11px] text-muted-foreground">
-                  התחזית שלכם הייתה: {prediction === 'yes' ? 'כן, נראה את הנר גם בצינור מכופף' : 'לא, לא נראה את הנר בצינור מכופף'}
-                </p>
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  <span className={`px-2 py-1 rounded-md border ${testedStraight ? 'bg-primary/15 text-primary border-primary/30' : 'bg-muted border-border text-muted-foreground'}`}>
+                    {testedStraight ? '✔' : '1.'} בדקתם צינור ישר
+                  </span>
+                  <span className={`px-2 py-1 rounded-md border ${testedBent ? 'bg-primary/15 text-primary border-primary/30' : 'bg-muted border-border text-muted-foreground'}`}>
+                    {testedBent ? '✔' : '2.'} בדקתם צינור מכופף
+                  </span>
+                  <span className={`px-2 py-1 rounded-md border ${testedStraight && testedBent ? 'bg-accent/15 text-accent border-accent/30' : 'bg-muted border-border text-muted-foreground'}`}>
+                    3. שולחים מסקנה
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -376,7 +464,7 @@ const LightMazeGame: React.FC = () => {
                       צינור מכופף ⤵️
                     </button>
                   </div>
-                  <h3 className="text-xs font-bold text-primary mt-2">2. כיוון הצינור מול חור התיבה</h3>
+                  <h3 className="text-xs font-bold text-primary mt-2">2. כוונו את הצינור מול חור התיבה</h3>
                   <input
                     type="range"
                     min={-1}
@@ -388,19 +476,23 @@ const LightMazeGame: React.FC = () => {
                   />
                   <div className="flex justify-between text-[11px] text-muted-foreground">
                     <span>הזזה שמאלה</span>
-                    <span>מול החור</span>
+                    <span className={Math.abs(offset) < 0.22 ? 'text-primary font-bold' : ''}>מול החור 🎯</span>
                     <span>הזזה ימינה</span>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    החור מסומן בטבעת זוהרת על דופן התיבה. אם הצינור לא מולו — האור פוגע בדופן ולא נכנס.
+                  </p>
                 </div>
 
                 <div className="game-panel p-4 flex flex-col gap-3">
                   <h3 className="text-xs font-bold text-primary">3. שלחו את המסקנה</h3>
                   {!(testedStraight && testedBent) ? (
                     <p className="text-xs text-muted-foreground">
-                      בדקו קודם גם צינור ישר וגם צינור מכופף, ואז תיפתח שאלת המסקנה.
+                      כדי שהמסקנה תהיה מבוססת ניסוי — בדקו קודם גם צינור ישר וגם צינור מכופף. אז תיפתח שאלת המסקנה.
                     </p>
                   ) : (
                     <>
+                      <p className="text-[11px] text-muted-foreground">מה מסביר בצורה הטובה ביותר את מה שראיתם?</p>
                       {[
                         'האור מתעקל ועובר בכל צינור, גם מכופף.',
                         'האור מתקדם בקו ישר, ולכן נראה רק כשהצינור ישר ומכוון אל החור.',
@@ -443,21 +535,157 @@ const LightMazeGame: React.FC = () => {
             </div>
           )}
 
+
           {gameState === 'room2Done' && (
             <div className="flex flex-col items-center justify-center my-auto gap-5 game-panel p-8 text-center">
               <div className="text-5xl animate-bounce">{ROOM_2.reward?.icon}</div>
               <h2 className="text-2xl font-bold text-primary">קיבלתם את {ROOM_2.reward?.name}!</h2>
               <p className="text-muted-foreground max-w-md text-sm">{ROOM_2.narrative.unlocked}</p>
-              <p className="text-xs text-muted-foreground">{ROOM_2.narrative.peerCheck}</p>
+              <p className="text-xs text-muted-foreground max-w-md">{ROOM_2.narrative.peerCheck}</p>
               <button
-                onClick={() => setFeedback({ text: `${LESSONS[2].title} בפיתוח - בקרוב!`, ok: true })}
+                onClick={() => setGameState('room3Intro')}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
               >
-                המשך לחדר 3 ➡️
+                המשך לחדר 3: שקיפות ואטימות ➡️
               </button>
-              {feedback && <span className="text-xs text-primary font-bold">{feedback.text}</span>}
             </div>
           )}
+
+          {gameState === 'room3' && (
+            <div className="flex flex-col gap-4">
+              <div className="game-panel p-4 flex flex-col gap-2">
+                <p className="text-xs md:text-sm font-medium text-primary">שלב 3: {ROOM_3.narrative.task}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  התחזית שלכם: הכי הרבה אור יעבור דרך <strong>{r3Prediction}</strong> • כלל אצבע: מעל 70% = שקוף,
+                  15%–70% = מעביר אור חלקית, מתחת ל־15% = אטום.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setLampOn((v) => !v)}
+                    className={`text-xs py-1.5 px-3 rounded-lg border font-bold ${
+                      lampOn
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted text-foreground border-border'
+                    }`}
+                  >
+                    {lampOn ? '💡 המנורה דולקת — כבו' : '🌑 המנורה כבויה — הדליקו'}
+                  </button>
+                  <span className="text-[11px] text-muted-foreground">
+                    נמדדו {measuredIds.length} מתוך {ROOM_3_SAMPLES.length} דוגמאות
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="game-panel p-4 flex flex-col gap-2">
+                  <h3 className="text-xs font-bold text-primary">1. בחרו דוגמת חומר להצבה בקרן</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ROOM_3_SAMPLES.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          setActiveSample(s.id);
+                          if (lampOn) setMeasuredIds((p) => (p.includes(s.id) ? p : [...p, s.id]));
+                        }}
+                        className={`text-xs py-2 px-2 rounded-lg border font-medium flex items-center gap-1.5 justify-center ${
+                          activeSample === s.id
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted border-border hover:bg-muted/70'
+                        }`}
+                      >
+                        <span className="text-base">{s.icon}</span>
+                        {s.name}
+                        {measuredIds.includes(s.id) && <span>✔</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    כשהמנורה דולקת, קראו את המדידה שמופיעה מעל המסך בסצנה — היא אומרת כמה אחוז מהאור עבר.
+                  </p>
+                </div>
+
+                <div className="game-panel p-4 flex flex-col gap-2">
+                  <h3 className="text-xs font-bold text-primary">2. מיינו כל חומר לקבוצה</h3>
+                  {ROOM_3_SAMPLES.map((s) => {
+                    const c = r3Choices[s.id];
+                    const isWrong = r3Wrong.includes(s.id);
+                    return (
+                      <div
+                        key={s.id}
+                        className={`flex items-center gap-2 border rounded-lg p-1.5 ${
+                          isWrong ? 'border-destructive/60' : c ? 'border-primary/40' : 'border-border'
+                        }`}
+                      >
+                        <span className="text-xs w-28 shrink-0">
+                          {s.icon} {s.name}
+                        </span>
+                        <div className="flex gap-1 flex-1">
+                          {(
+                            [
+                              ['transparent', 'שקוף'],
+                              ['translucent', 'חלקית'],
+                              ['opaque', 'אטום'],
+                            ] as const
+                          ).map(([k, lbl]) => (
+                            <button
+                              key={k}
+                              onClick={() => {
+                                setR3Choices((p) => ({ ...p, [s.id]: k }));
+                                setR3Wrong((p) => p.filter((x) => x !== s.id));
+                              }}
+                              className={`flex-1 text-[11px] py-1 rounded-md border ${
+                                c === k
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-muted border-border hover:bg-muted/70'
+                              }`}
+                            >
+                              {lbl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <button
+                    onClick={submitRoom3}
+                    disabled={!canSubmitRoom3}
+                    className="bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground font-bold py-2.5 rounded-xl transition mt-1"
+                  >
+                    שלחו את המיון ✅
+                  </button>
+                  {!canSubmitRoom3 && (
+                    <span className="text-[11px] text-muted-foreground text-center">
+                      מדדו את כל שש הדוגמאות וסמנו קבוצה לכל חומר כדי לשלוח.
+                    </span>
+                  )}
+                  {room3Feedback && (
+                    <span
+                      className={`text-xs px-3 py-1.5 rounded-lg font-bold border ${
+                        room3Feedback.ok
+                          ? 'bg-primary/15 text-primary border-primary/30'
+                          : 'bg-destructive/15 text-destructive border-destructive/30'
+                      }`}
+                    >
+                      {room3Feedback.text}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {activeSampleData && (
+                <div className="game-panel p-3 text-xs flex items-center gap-3">
+                  <span className="text-xl">🔍</span>
+                  <div>
+                    <strong className="text-primary">
+                      {activeSampleData.name} — {Math.round(activeSampleData.transmission * 100)}% מהאור עבר:
+                    </strong>{' '}
+                    {activeSampleData.realWorld}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Overlays */}
@@ -569,6 +797,52 @@ const LightMazeGame: React.FC = () => {
             </div>
           </div>
         )}
+
+        {gameState === 'room3Intro' && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
+            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
+              <div className="text-4xl">🔬</div>
+              <h2 className="text-xl font-bold text-primary">{ROOM_3.title}</h2>
+              <p className="text-muted-foreground text-sm leading-relaxed">{ROOM_3.narrative.intro}</p>
+              <p className="text-sm font-bold text-foreground">
+                חזו לפני הניסוי: דרך איזה חומר יעבור הכי הרבה אור?
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {[ROOM_3_SAMPLES[0], ROOM_3_SAMPLES[2], ROOM_3_SAMPLES[4]].map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setR3Prediction(s.name);
+                      setGameState('room3');
+                    }}
+                    className="bg-muted hover:bg-muted/70 border border-border p-3 rounded-xl text-xs font-bold flex flex-col gap-1 items-center"
+                  >
+                    <span className="text-2xl">{s.icon}</span>
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'room3Done' && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
+            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
+              <div className="text-5xl animate-bounce">{ROOM_3.reward?.icon}</div>
+              <h2 className="text-2xl font-bold text-primary">קיבלתם את {ROOM_3.reward?.name}!</h2>
+              <p className="text-sm text-foreground">{ROOM_3.narrative.unlocked}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{ROOM_3.narrative.peerCheck}</p>
+              <div className="game-panel p-4 text-right text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-primary">מה למדתם במבוך:</strong>
+                <br />1. יש גופים שמפיקים אור בעצמם, ואחרים רק מחזירים אור.
+                <br />2. האור מתקדם בקו ישר בלבד.
+                <br />3. חומר שקוף מעביר כמעט את כל האור, חומר אטום חוסם אותו ויוצר צל, ויש גם חומרים שמעבירים אור חלקית.
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
