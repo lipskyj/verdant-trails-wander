@@ -9,7 +9,7 @@ import ResearcherReport from './island/ResearcherReport';
 import { ISLAND, MYSTERIES, PRE_TEST, PULSE_CHECKS } from '@/content/island';
 import { logEvent } from '@/lib/eventLog';
 import {
-  LESSONS,
+
   ROOM_1,
   ROOM_2,
   ROOM_3,
