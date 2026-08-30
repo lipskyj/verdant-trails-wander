@@ -75,7 +75,7 @@ export const ROOM_2: LessonRoom = {
   targetGrade: "כיתה ו'",
   badge: 'כיתה ו׳ | פיילוט אמי״ת',
   activity: 'dark-box',
-  status: 'coming-soon',
+  status: 'available',
   reward: { icon: '📏', name: 'צינור החוקרים' },
   bloom: ['תכנון ניסוי', 'חיזוי', 'הסבר תופעה'],
   narrative: {

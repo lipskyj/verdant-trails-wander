@@ -215,6 +215,36 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
     // --- REAL EXPERIMENT OBJECTS ---
     const targets: THREE.Object3D[] = [];
+    const labelTextures: THREE.Texture[] = [];
+
+    /** floating name tag above every object so students know what they measure */
+    const makeLabel = (text: string) => {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 128;
+      const ctx = c.getContext('2d')!;
+      ctx.fillStyle = 'rgba(8,12,20,0.78)';
+      ctx.beginPath();
+      ctx.roundRect(6, 22, 500, 84, 26);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(125,211,252,0.75)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.font = 'bold 54px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#e8f5ff';
+      ctx.direction = 'rtl';
+      ctx.fillText(text, 256, 66);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      labelTextures.push(tex);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+      sp.scale.set(1.05, 0.26, 1);
+      sp.renderOrder = 999;
+      return sp;
+    };
+
     const register = (group: THREE.Object3D, id: number, self: boolean, name: string) => {
       group.traverse((o) => {
         o.userData.id = id;
@@ -223,10 +253,15 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
           o.receiveShadow = true;
         }
       });
+      const label = makeLabel(name);
+      label.position.set(0, 1.02, 0);
+      label.userData.id = id;
+      group.add(label);
       group.userData = { id, self, name };
       targets.push(group);
       scene.add(group);
     };
+
 
     let mirrorCam: THREE.CubeCamera | null = null;
     let mirrorGlass: THREE.Mesh | null = null;
@@ -612,6 +647,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
           Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
         }
       });
+      labelTextures.forEach((t) => t.dispose());
       envRT.texture.dispose();
       pmrem.dispose();
       floorTex.dispose();
