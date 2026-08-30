@@ -1,35 +1,28 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LightLabScene from './LightLabScene';
+import { LESSONS, ROOM_1, type SortingItem } from '@/content/lessons';
 
-// --- CONTENT AS DATA (decoupled) ---
+// --- CONTENT AS DATA (curriculum lives in src/content/lessons.ts) ---
+const lesson = ROOM_1;
 const SIMULATION_DATA = {
   meta: {
-    title: 'מועדון החוקרים: מבוך האור - חדר 1',
-    subject: 'אנרגיית קרינה (אור)',
-    targetGrade: "כיתה ו'",
-    badge: 'כיתה ו׳ | פיילוט אמי״ת',
+    title: lesson.title,
+    subject: lesson.subject,
+    targetGrade: lesson.targetGrade,
+    badge: lesson.badge,
   },
   narrative: {
-    intro:
-      'מסיבת ההפתעה עומדת להתחיל, אך לפתע... האורות מתחילים לעמעם והצבעים בסביבה מאיימים להיעלם! עזרו להציל את החגיגה על ידי הבנת חוקי האור.',
-    room1Task: 'שלב 1: בחרו את מסלול החקר שלכם וזהו את גופים מפיקי האור לעומת מחזירי האור.',
-    peerCheck:
-      'הסתכלו על חבר/ה שיושב/ת לידכם בכיתה. האם שניהם הגעתם לאותה מסקנה לגבי ההבדל בין הירח (מחזיר אור) לשמש (מפיק אור)? הסבירו אחד לשני בקצרה לפני שתקבלו את הפנס.',
-    unlocked:
-      'החדר החשוך הבא במבוך נפתח. כעת תוכלו להמשיך לחקור את התקדמות האור בקו ישר דרך תיבה אפלה.',
+    intro: lesson.narrative.intro,
+    room1Task: lesson.narrative.task,
+    peerCheck: lesson.narrative.peerCheck,
+    unlocked: lesson.narrative.unlocked,
   },
-  sortingItems: [
-    { id: 1, name: 'שמש', type: 'producer', icon: '☀️', color: 0xfacc15, realWorld: 'כוכב המאיר מכוח עצמו במערכת השמש.' },
-    { id: 2, name: 'מראה', type: 'reflector', icon: '🪞', color: 0xa78bfa, realWorld: 'משטח חלק המחזיר אלינו את אור השמש.' },
-    { id: 3, name: 'נורה חשמלית', type: 'producer', icon: '💡', color: 0xfde68a, realWorld: 'מכשיר הממיר אנרגיה חשמלית לאור מלאכותי בביתנו.' },
-    { id: 4, name: 'ירח', type: 'reflector', icon: '🌙', color: 0xc4b5fd, realWorld: 'גוף שמימי שאינו מאיר בעצמו אלא מחזיר את אור השמש.' },
-    { id: 5, name: 'גחלילית', type: 'producer', icon: '🐛', color: 0x86efac, realWorld: 'חרק המייצר אור ביולוגי טבעי בטבע.' },
-    { id: 6, name: 'כדור הארץ', type: 'reflector', icon: '🌍', color: 0x60a5fa, realWorld: 'כוכב לכת המחזיר לחלל חלק מאור השמש הפוגע בו.' },
-  ] as const,
+  sortingItems: lesson.items,
 };
 
-type Item = (typeof SIMULATION_DATA.sortingItems)[number];
+type Item = SortingItem;
 type GameState = 'intro' | 'pathSelect' | 'room1' | 'peerCheck' | 'unlocked';
+
 
 const LightMazeGame: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('intro');
@@ -210,17 +203,47 @@ const LightMazeGame: React.FC = () => {
 
           {gameState === 'unlocked' && (
             <div className="flex flex-col items-center justify-center my-auto gap-5 game-panel p-8 text-center">
-              <div className="text-5xl animate-bounce">🔦</div>
-              <h2 className="text-2xl font-bold text-primary">קיבלתם את פנס הקסם!</h2>
+              <div className="text-5xl animate-bounce">{lesson.reward?.icon ?? '🔦'}</div>
+              <h2 className="text-2xl font-bold text-primary">קיבלתם את {lesson.reward?.name ?? 'פנס הקסם'}!</h2>
               <p className="text-muted-foreground max-w-md text-sm">{SIMULATION_DATA.narrative.unlocked}</p>
+
+              {/* מפת המבוך - שיעורים עתידיים נטענים מרשימת השיעורים */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
+                {LESSONS.map((room) => {
+                  const done = room.slug === lesson.slug;
+                  return (
+                    <div
+                      key={room.slug}
+                      className={`rounded-xl border p-3 text-right flex flex-col gap-1 ${
+                        done ? 'border-primary/50 bg-primary/10' : 'border-border bg-muted/50 opacity-70'
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-foreground">
+                        {done ? '✔' : '🔒'} חדר {room.order}
+                      </span>
+                      <span className="text-xs text-primary">{room.subject}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {done ? 'הושלם' : 'ייפתח בשיעור הבא'} • פרס: {room.reward?.icon}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
               <button
-                onClick={() => setFeedback({ text: 'חדר 2 (קו ישר וחומרים שקופים) בפיתוח - בקרוב!', ok: true })}
+                onClick={() =>
+                  setFeedback({
+                    text: `${LESSONS[1].title} בפיתוח - בקרוב!`,
+                    ok: true,
+                  })
+                }
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
               >
                 המשך לחדר הבא במבוך ➡️
               </button>
             </div>
           )}
+
         </div>
 
         {/* Overlays */}

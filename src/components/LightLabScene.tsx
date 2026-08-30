@@ -70,6 +70,18 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
   beamRef.current = beamOn;
   inspectRef.current = onInspect;
 
+  // keyboard shortcuts: L = room light, F = flashlight
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === 'l' || k === 'ק') setRoomLight((v) => !v);
+      if (k === 'f' || k === 'כ') setBeamOn((v) => !v);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -160,8 +172,13 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     scene.add(flash, flashTarget);
     flash.target = flashTarget;
 
-    // Physical flashlight body held in view
+    // Physical flashlight body held in view.
+    // The torch model is modelled pointing along -Z, so it lives inside a pivot
+    // that is rotated 180° — that way pivot.lookAt(aim) makes the LENS face the
+    // aim point (previously the tail pointed at the objects).
+    const torchPivot = new THREE.Group();
     const torch = new THREE.Group();
+    torch.rotation.y = Math.PI;
     const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0x22262c, roughness: 0.3, metalness: 0.95, clearcoat: 0.8 });
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.85, 32), bodyMat);
     body.rotation.x = Math.PI / 2;
@@ -178,7 +195,9 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     lens.rotation.y = Math.PI;
     torch.add(lens);
     torch.scale.setScalar(0.6);
-    scene.add(torch);
+    torchPivot.add(torch);
+    scene.add(torchPivot);
+
 
     // Visible volumetric-ish beam cone
     const beamMat = new THREE.MeshBasicMaterial({
@@ -485,9 +504,13 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
       // Room lighting toggle (the "lights off" part of the experiment)
       const on = roomLightRef.current;
-      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.02, dt * 6);
+      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.015, dt * 6);
       ceiling.intensity = THREE.MathUtils.lerp(ceiling.intensity, on ? 6 : 0, dt * 6);
       ceilingSpot.intensity = THREE.MathUtils.lerp(ceilingSpot.intensity, on ? 60 : 0, dt * 6);
+      // drop the image-based light too, otherwise "lights off" still looks lit
+      const wantEnv = on ? envRT.texture : null;
+      if (scene.environment !== wantEnv) scene.environment = wantEnv;
+
 
       // Aim the flashlight where the cursor points
       raycaster.setFromCamera(pointer, camera);
@@ -499,13 +522,14 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       }
       flashTarget.position.copy(aim);
 
-      // Flashlight sits between the camera and the bench, held toward the objects
+      // Flashlight is held on the viewer's side of the bench, aimed at the objects
       const holdPos = new THREE.Vector3()
         .copy(camera.position)
-        .lerp(new THREE.Vector3(aim.x, aim.y + 0.9, aim.z), 0.6);
+        .lerp(new THREE.Vector3(aim.x, aim.y + 0.7, aim.z), 0.45);
       flash.position.copy(holdPos);
-      torch.position.copy(holdPos);
-      torch.lookAt(aim);
+      torchPivot.position.copy(holdPos);
+      torchPivot.lookAt(aim);
+
 
       const lit = beamRef.current;
       flash.intensity = THREE.MathUtils.lerp(flash.intensity, lit ? 240 : 0, dt * 10);
@@ -599,21 +623,48 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
   return (
     <div ref={mountRef} className="relative w-full h-full bg-background cursor-crosshair">
-      {/* Lab controls */}
-      <div className="absolute top-3 left-3 flex gap-2">
+      {/* Lab controls: explicit on/off switches */}
+      <div className="absolute top-3 left-3 flex flex-col gap-2 items-start">
         <button
           onClick={() => setRoomLight((v) => !v)}
-          className="game-panel px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 transition"
+          aria-pressed={roomLight}
+          className={`game-panel flex items-center gap-2 px-3 py-2 text-xs font-bold transition ${
+            roomLight ? 'text-primary' : 'text-muted-foreground'
+          }`}
         >
-          {roomLight ? '🌑 כבה את אור החדר' : '💡 הדלק את אור החדר'}
+          <span className="text-base">💡</span>
+          <span>אור החדר</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] border ${
+              roomLight
+                ? 'bg-primary/20 border-primary/40 text-primary'
+                : 'bg-muted border-border text-muted-foreground'
+            }`}
+          >
+            {roomLight ? 'דלוק' : 'כבוי'}
+          </span>
         </button>
         <button
           onClick={() => setBeamOn((v) => !v)}
-          className="game-panel px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/10 transition"
+          aria-pressed={beamOn}
+          className={`game-panel flex items-center gap-2 px-3 py-2 text-xs font-bold transition ${
+            beamOn ? 'text-accent' : 'text-muted-foreground'
+          }`}
         >
-          {beamOn ? '🔦 כבה פנס' : '🔦 הדלק פנס'}
+          <span className="text-base">🔦</span>
+          <span>הפנס</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] border ${
+              beamOn
+                ? 'bg-accent/20 border-accent/40 text-accent'
+                : 'bg-muted border-border text-muted-foreground'
+            }`}
+          >
+            {beamOn ? 'דלוק' : 'כבוי'}
+          </span>
         </button>
       </div>
+
 
       {/* Light meter readout */}
       <div className="absolute top-3 right-3 game-panel px-3 py-2 text-xs min-w-[190px]">
@@ -634,8 +685,9 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       </div>
 
       <div className="absolute bottom-3 left-3 game-panel px-3 py-1 text-xs text-muted-foreground">
-        הזזת עכבר - כיוון הפנס • גרירה - סיבוב המעבדה • גלגלת - זום • לחיצה על גוף - בדיקה
+        הזזת עכבר - כיוון הפנס • גרירה - סיבוב המעבדה • גלגלת - זום • לחיצה על גוף - בדיקה • L - אור החדר • F - פנס
       </div>
+
     </div>
   );
 };
