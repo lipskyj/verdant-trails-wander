@@ -230,7 +230,7 @@ const LightMazeGame: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                   <p className="text-xs md:text-sm font-medium text-primary">
                     {SIMULATION_DATA.narrative.room1Task} סמנו לכל גוף אם הוא <strong>מפיק אור</strong> או{' '}
-                    <strong>מחזיר אור</strong>, ואז לחצו על <strong>"שלחו את המיון"</strong> בתחתית העמוד.
+                    <strong>מחזיר אור</strong>, ואז לחצו על <strong>"שלחו את המיון"</strong> בלוח המשימה שבצד.
                   </p>
                   <span className="text-xs font-bold text-foreground whitespace-nowrap">
                     מוינו נכון {solvedIds.length} מתוך {total}

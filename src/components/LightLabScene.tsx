@@ -660,7 +660,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
   return (
     <div ref={mountRef} className="relative w-full h-full bg-background cursor-crosshair">
       {/* Lab controls: explicit on/off switches */}
-      <div className="absolute top-3 left-3 flex flex-col gap-2 items-start">
+      <div className="absolute bottom-14 right-3 flex flex-col gap-2 items-end">
         <button
           onClick={() => setRoomLight((v) => !v)}
           aria-pressed={roomLight}
@@ -703,7 +703,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
 
       {/* Light meter readout */}
-      <div className="absolute top-3 right-3 game-panel px-3 py-2 text-xs min-w-[190px]">
+      <div className="absolute top-[72px] right-3 game-panel px-3 py-2 text-xs min-w-[190px]">
         <div className="font-bold text-primary mb-1">מד עוצמת אור (לוקס)</div>
         {readout ? (
           <>
@@ -720,7 +720,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         )}
       </div>
 
-      <div className="absolute bottom-3 left-3 game-panel px-3 py-1 text-xs text-muted-foreground">
+      <div className="absolute bottom-3 right-3 game-panel px-3 py-1 text-xs text-muted-foreground">
         הזזת עכבר - כיוון הפנס • גרירה - סיבוב המעבדה • גלגלת - זום • לחיצה על גוף - בדיקה • L - אור החדר • F - פנס
       </div>
 
