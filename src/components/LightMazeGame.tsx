@@ -760,23 +760,76 @@ const LightMazeGame: React.FC = () => {
         </div>
 
         {/* Overlays */}
-        {gameState === 'intro' && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
-            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-6">
-              <div className="text-5xl">🎉</div>
-              <h2 className="text-2xl font-bold text-primary">הצלת מסיבת ההפתעה והצבעים</h2>
-              <p className="text-muted-foreground leading-relaxed text-sm md:text-base">
-                {SIMULATION_DATA.narrative.intro}
+        {gameState === 'islandIntro' && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/92 backdrop-blur p-6">
+            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
+              <div className="text-5xl">🏝️</div>
+              <span className="text-[11px] text-accent">{ISLAND.clubName} • קריאת מצוקה</span>
+              <h2 className="text-2xl font-bold text-primary">
+                {ISLAND.title} — {ISLAND.mission}
+              </h2>
+              <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{ISLAND.distressCall}</p>
+              <p className="text-xs text-foreground leading-relaxed">
+                {ISLAND.guideIcon} {ISLAND.guideName}: {ISLAND.guideWelcome}
               </p>
               <button
-                onClick={() => setGameState('pathSelect')}
+                onClick={() => setGameState('preTest')}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition hover:-translate-y-0.5"
               >
-                הכנס למבוך האור ➡️
+                למבחן הכניסה של המועדון ➡️
               </button>
             </div>
           </div>
         )}
+
+        {gameState === 'preTest' && (
+          <GuideQuiz
+            items={PRE_TEST}
+            heading="מבחן הכניסה של המועדון"
+            intro="ארבע שאלות קצרות. חייבים לענות על כולן כדי להפליג לאי — אין ציון, רק נקודת פתיחה."
+            logAs="gate_pre_answer"
+            context="pre"
+            ctaLabel="להפליג לאי"
+            onDone={(res) => {
+              logEvent('gate_pre_complete', {
+                correct: res.filter((r) => r.correct).length,
+                total: PRE_TEST.length,
+              });
+              setGameState('map');
+            }}
+          />
+        )}
+
+        {gameState === 'map' && (
+          <IslandMap
+            solved={solvedMysteries}
+            tools={{ flashlight: hasFlashlight, tube: hasTube, lens: hasLens }}
+            onEnter={enterMystery}
+            onFinish={() => setGameState('report')}
+          />
+        )}
+
+        {gameState === 'report' && <ResearcherReport />}
+
+        {pulse && PULSE_CHECKS[pulse] && (
+          <GuideQuiz
+            items={[PULSE_CHECKS[pulse]]}
+            heading="בדיקת דופק"
+            logAs="pulse_answer"
+            context={pulse}
+            ctaLabel="חזרה לניסוי"
+            onDone={() => {
+              setPulseDone((p) => [...p, pulse]);
+              setPulse(null);
+              if (pulseNext) {
+                setGameState(pulseNext);
+                setPulseNext(null);
+              }
+            }}
+          />
+        )}
+
+
 
         {gameState === 'pathSelect' && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur p-6">
