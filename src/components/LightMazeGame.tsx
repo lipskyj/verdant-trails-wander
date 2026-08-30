@@ -468,9 +468,10 @@ const LightMazeGame: React.FC = () => {
               <div className="game-panel p-4 flex flex-col gap-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs md:text-sm font-medium text-primary">
-                    שלב 2: הביטו דרך הצינור אל הנר שבתוך התיבה האפלה. שנו את צורת הצינור וכוונו אותו מול חור התיבה —
-                    ובדקו מתי העין רואה את הלהבה.
+                    <span className="text-accent">{MYSTERIES[1].code}:</span> הביטו דרך צינור החוקרים אל הנר שבתוך
+                    התיבה האפלה. שנו את צורת הצינור וכוונו אותו מול חור התיבה — ובדקו מתי העין רואה את הלהבה.
                   </p>
+
                   <span
                     className={`text-xs font-bold px-3 py-1.5 rounded-lg border whitespace-nowrap ${
                       seen
