@@ -4,110 +4,57 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&display=swap');
 
-/* Photosynthesis Game Design System - Bright Botanical Aesthetic */
+/* Light Maze Design System - Deep Slate & Sky Aesthetic */
 
 @layer base {
   :root {
-    --background: 120 35% 96%;
-    --foreground: 145 50% 15%;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
 
-    --card: 120 30% 98%;
-    --card-foreground: 145 50% 15%;
+    --card: 222 44% 10%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 120 30% 98%;
-    --popover-foreground: 145 50% 15%;
+    --popover: 222 44% 10%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 85 65% 45%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 199 89% 55%;
+    --primary-foreground: 222 47% 8%;
 
-    --secondary: 45 95% 55%;
-    --secondary-foreground: 35 80% 20%;
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 120 20% 90%;
-    --muted-foreground: 145 25% 40%;
+    --muted: 217 33% 16%;
+    --muted-foreground: 215 20% 68%;
 
-    --accent: 35 90% 55%;
-    --accent-foreground: 35 80% 15%;
+    --accent: 258 90% 70%;
+    --accent-foreground: 222 47% 8%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 120 25% 85%;
-    --input: 120 25% 85%;
-    --ring: 85 65% 45%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 199 89% 55%;
 
     --radius: 1rem;
 
-    /* Game-specific colors */
-    --sunlight: 45 100% 60%;
-    --sunlight-glow: 40 100% 70%;
-    --leaf-bright: 100 60% 50%;
-    --leaf-dark: 130 50% 30%;
-    --stem: 100 40% 35%;
-    --soil: 30 40% 25%;
-    --sky-top: 200 80% 70%;
-    --sky-bottom: 180 60% 85%;
-    --energy: 50 100% 50%;
-    --growth: 130 70% 45%;
+    --glass-bg: 222 44% 11% / 0.75;
+    --glass-border: 199 89% 55% / 0.22;
+    --game-shadow: 0 8px 32px hsl(222 60% 2% / 0.6);
 
-    /* Glass effects */
-    --glass-bg: 0 0% 100% / 0.85;
-    --glass-border: 120 30% 70% / 0.3;
-    --game-shadow: 0 8px 32px hsl(145 40% 20% / 0.15);
-
-    --sidebar-background: 120 35% 96%;
-    --sidebar-foreground: 145 50% 15%;
-    --sidebar-primary: 85 65% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 120 25% 90%;
-    --sidebar-accent-foreground: 145 50% 15%;
-    --sidebar-border: 120 25% 85%;
-    --sidebar-ring: 85 65% 45%;
-  }
-
-  .dark {
-    --background: 145 40% 8%;
-    --foreground: 100 30% 95%;
-
-    --card: 145 35% 12%;
-    --card-foreground: 100 30% 95%;
-
-    --popover: 145 35% 12%;
-    --popover-foreground: 100 30% 95%;
-
-    --primary: 85 65% 50%;
-    --primary-foreground: 145 40% 8%;
-
-    --secondary: 45 90% 50%;
-    --secondary-foreground: 35 80% 10%;
-
-    --muted: 145 25% 18%;
-    --muted-foreground: 100 15% 60%;
-
-    --accent: 35 85% 50%;
-    --accent-foreground: 35 80% 10%;
-
-    --destructive: 0 65% 45%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 145 25% 20%;
-    --input: 145 25% 20%;
-    --ring: 85 65% 50%;
-
-    --glass-bg: 145 40% 8% / 0.85;
-    --glass-border: 100 30% 95% / 0.1;
-    --game-shadow: 0 8px 32px hsl(0 0% 0% / 0.4);
-
-    --sidebar-background: 145 40% 8%;
-    --sidebar-foreground: 100 30% 95%;
-    --sidebar-primary: 85 65% 50%;
-    --sidebar-primary-foreground: 145 40% 8%;
-    --sidebar-accent: 145 30% 15%;
-    --sidebar-accent-foreground: 100 30% 95%;
-    --sidebar-border: 145 25% 20%;
-    --sidebar-ring: 85 65% 50%;
+    --sidebar-background: 222 44% 10%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 199 89% 55%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 217 33% 16%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-ring: 199 89% 55%;
   }
 }
+
+
+
 
 @layer base {
   * {
@@ -128,29 +75,6 @@
     box-shadow: var(--game-shadow);
   }
 
-  .energy-bar {
-    background: linear-gradient(90deg, 
-      hsl(var(--sunlight)) 0%, 
-      hsl(var(--sunlight-glow)) 100%
-    );
-    box-shadow: 0 0 20px hsl(var(--sunlight) / 0.5);
-  }
-
-  .growth-bar {
-    background: linear-gradient(90deg, 
-      hsl(var(--leaf-dark)) 0%, 
-      hsl(var(--leaf-bright)) 100%
-    );
-    box-shadow: 0 0 15px hsl(var(--growth) / 0.4);
-  }
-
-  .sunlight-particle {
-    background: radial-gradient(circle, 
-      hsl(var(--sunlight-glow)) 0%, 
-      hsl(var(--sunlight)) 50%,
-      transparent 100%
-    );
-  }
 }
 
 @layer utilities {
