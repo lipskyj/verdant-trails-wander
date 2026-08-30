@@ -246,14 +246,25 @@ const LightMazeGame: React.FC = () => {
       <header className="absolute top-0 inset-x-0 z-20 flex justify-between items-center px-3 md:px-5 py-3 pointer-events-none [&>*]:pointer-events-auto">
         <div className="game-panel flex items-center gap-3 px-3 py-2">
           <span className="bg-primary text-primary-foreground text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">
-            {SIMULATION_DATA.meta.badge}
+            {ISLAND.title} • {ISLAND.mission}
           </span>
           <h1 className="text-sm md:text-base font-bold text-primary">
-            {room3Active ? ROOM_3.title : room2Active ? ROOM_2.title : SIMULATION_DATA.meta.title}
+            {room3Active
+              ? `${MYSTERIES[2].code} — ${MYSTERIES[2].name}`
+              : room2Active
+                ? `${MYSTERIES[1].code} — ${MYSTERIES[1].name}`
+                : `${MYSTERIES[0].code} — ${MYSTERIES[0].name}`}
           </h1>
+          <button
+            onClick={() => setGameState('map')}
+            className="text-[11px] bg-muted border border-border rounded-lg px-2 py-1 hover:bg-muted/70"
+          >
+            🗺️ מפת האי
+          </button>
         </div>
         <div className="game-panel flex items-center gap-2 px-3 py-2">
-          <span className="text-xs text-muted-foreground">ארסנל כלים:</span>
+          <span className="text-xs text-muted-foreground">תרמיל החוקר:</span>
+
           <span className={`text-lg ${hasFlashlight ? 'opacity-100' : 'opacity-30'}`} title="פנס קסם">
             🔦
           </span>
