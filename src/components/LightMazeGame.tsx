@@ -172,10 +172,10 @@ const LightMazeGame: React.FC = () => {
   return (
     <div
       dir="rtl"
-      className="flex flex-col h-screen w-full bg-background text-foreground font-sans select-none overflow-hidden"
+      className="relative h-screen w-full bg-background text-foreground font-sans select-none overflow-hidden"
     >
-      <header className="flex justify-between items-center px-4 md:px-6 py-4 bg-card border-b border-border">
-        <div className="flex items-center gap-3">
+      <header className="absolute top-0 inset-x-0 z-20 flex justify-between items-center px-3 md:px-5 py-3 pointer-events-none [&>*]:pointer-events-auto">
+        <div className="game-panel flex items-center gap-3 px-3 py-2">
           <span className="bg-primary text-primary-foreground text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">
             {SIMULATION_DATA.meta.badge}
           </span>
@@ -183,7 +183,7 @@ const LightMazeGame: React.FC = () => {
             {room3Active ? ROOM_3.title : room2Active ? ROOM_2.title : SIMULATION_DATA.meta.title}
           </h1>
         </div>
-        <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border border-border">
+        <div className="game-panel flex items-center gap-2 px-3 py-2">
           <span className="text-xs text-muted-foreground">ארסנל כלים:</span>
           <span className={`text-lg ${hasFlashlight ? 'opacity-100' : 'opacity-30'}`} title="פנס קסם">
             🔦
@@ -197,9 +197,9 @@ const LightMazeGame: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col relative overflow-hidden">
-        {/* 3D stage */}
-        <div className="w-full h-[46vh] md:h-[52vh] bg-background relative border-b border-border">
+      <main className="absolute inset-0 overflow-hidden">
+        {/* 3D stage — fills the whole experience */}
+        <div className="absolute inset-0 bg-background">
           {room3Active ? (
             <TransparencyScene
               transmission={activeSampleData?.transmission ?? 0}
@@ -222,15 +222,15 @@ const LightMazeGame: React.FC = () => {
         </div>
 
 
-        {/* Interactive panel */}
-        <div className="flex-1 p-4 md:p-6 flex flex-col gap-4 overflow-y-auto">
+        {/* Tasks & questions live inside the 3D world as floating glass panels */}
+        <div className="absolute z-20 top-[64px] bottom-0 left-0 w-full sm:w-[420px] lg:w-[500px] px-3 pb-4 pt-1 flex flex-col gap-3 overflow-y-auto hud-scroll">
           {gameState === 'room1' && (
             <>
               <div className="game-panel p-4 flex flex-col gap-3">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                   <p className="text-xs md:text-sm font-medium text-primary">
                     {SIMULATION_DATA.narrative.room1Task} סמנו לכל גוף אם הוא <strong>מפיק אור</strong> או{' '}
-                    <strong>מחזיר אור</strong>, ואז לחצו על <strong>"שלחו את המיון"</strong> בתחתית העמוד.
+                    <strong>מחזיר אור</strong>, ואז לחצו על <strong>"שלחו את המיון"</strong> בלוח המשימה שבצד.
                   </p>
                   <span className="text-xs font-bold text-foreground whitespace-nowrap">
                     מוינו נכון {solvedIds.length} מתוך {total}
@@ -324,7 +324,7 @@ const LightMazeGame: React.FC = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-auto pt-2">
+                <div className="grid grid-cols-1 gap-3 pt-2">
                   <div className="game-panel p-3">
                     <h2 className="text-xs font-bold text-primary tracking-wider mb-2">
                       מפיקי אור ({producersBin.length})
@@ -437,7 +437,7 @@ const LightMazeGame: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div className="game-panel p-4 flex flex-col gap-3">
                   <h3 className="text-xs font-bold text-primary">1. צורת הצינור</h3>
                   <div className="flex gap-2">
@@ -576,7 +576,7 @@ const LightMazeGame: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div className="game-panel p-4 flex flex-col gap-2">
                   <h3 className="text-xs font-bold text-primary">1. בחרו דוגמת חומר להצבה בקרן</h3>
                   <div className="grid grid-cols-2 gap-2">
