@@ -605,13 +605,13 @@ const LightMazeGame: React.FC = () => {
             <div className="flex flex-col items-center justify-center my-auto gap-5 game-panel p-8 text-center">
               <div className="text-5xl animate-bounce">{ROOM_2.reward?.icon}</div>
               <h2 className="text-2xl font-bold text-primary">קיבלתם את {ROOM_2.reward?.name}!</h2>
-              <p className="text-muted-foreground max-w-md text-sm">{ROOM_2.narrative.unlocked}</p>
+              <p className="text-muted-foreground max-w-md text-sm">{MYSTERIES[1].rewardLine}</p>
               <p className="text-xs text-muted-foreground max-w-md">{ROOM_2.narrative.peerCheck}</p>
               <button
-                onClick={() => setGameState('room3Intro')}
+                onClick={() => finishMystery('mysteryB', 'map')}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
               >
-                המשך לחדר 3: שקיפות ואטימות ➡️
+                חזרה למפת האי 🗺️
               </button>
             </div>
           )}
@@ -619,7 +619,9 @@ const LightMazeGame: React.FC = () => {
           {gameState === 'room3' && (
             <div className="flex flex-col gap-4">
               <div className="game-panel p-4 flex flex-col gap-2">
-                <p className="text-xs md:text-sm font-medium text-primary">שלב 3: {ROOM_3.narrative.task}</p>
+                <p className="text-xs md:text-sm font-medium text-primary">
+                  <span className="text-accent">{MYSTERIES[2].code}:</span> {ROOM_3.narrative.task}
+                </p>
                 <p className="text-[11px] text-muted-foreground">
                   התחזית שלכם: הכי הרבה אור יעבור דרך <strong>{r3Prediction}</strong> • כלל אצבע: מעל 70% = שקוף,
                   15%–70% = מעביר אור חלקית, מתחת ל־15% = אטום.
@@ -640,6 +642,10 @@ const LightMazeGame: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              <HintBox hints={MYSTERIES[2].hints} mystery="mysteryC" attempts={attemptsC} />
+
+
 
               <div className="grid grid-cols-1 gap-3">
                 <div className="game-panel p-4 flex flex-col gap-2">
