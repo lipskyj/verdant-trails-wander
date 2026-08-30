@@ -108,19 +108,62 @@ const LightMazeGame: React.FC = () => {
     measuredIds.length === ROOM_3_SAMPLES.length &&
     ROOM_3_SAMPLES.every((s) => r3Choices[s.id] !== undefined);
 
+  // ---- pulse-check helper: guide asks a question inside the mystery itself ----
+  const askPulse = (key: string, next?: GameState) => {
+    if (pulseDone.includes(key)) {
+      if (next) setGameState(next);
+      return;
+    }
+    setPulseNext(next ?? null);
+    setPulse(key);
+  };
+
+  const finishMystery = (slug: string, next: GameState) => {
+    setSolvedMysteries((p) => (p.includes(slug) ? p : [...p, slug]));
+    logEvent('mystery_complete', { mystery: slug });
+    setGameState(next);
+  };
+
+  const enterMystery = (slug: string) => {
+    logEvent('mystery_start', { mystery: slug });
+    if (slug === 'mysteryA') setGameState(solvedMysteries.includes('mysteryA') ? 'room1' : 'pathSelect');
+    if (slug === 'mysteryB') setGameState('room2Intro');
+    if (slug === 'mysteryC') setGameState('room3Intro');
+  };
+
   // mark the initially shown sample as measured while the lamp is on
   useEffect(() => {
     if (gameState !== 'room3' || !lampOn) return;
     setMeasuredIds((p) => (p.includes(activeSample) ? p : [...p, activeSample]));
   }, [gameState, lampOn, activeSample]);
 
+  // pulse check in the middle of mystery C — once every sample was measured
+  useEffect(() => {
+    if (gameState !== 'room3') return;
+    if (measuredIds.length === ROOM_3_SAMPLES.length && !pulseDone.includes('c_mid') && !pulse) {
+      askPulse('c_mid');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, measuredIds.length]);
+
+  // pulse check in the middle of mystery B — once both tube shapes were tested
+  useEffect(() => {
+    if (gameState !== 'room2') return;
+    if (testedStraight && testedBent && !pulseDone.includes('b_mid') && !pulse) {
+      askPulse('b_mid');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, testedStraight, testedBent]);
+
   const submitRoom3 = () => {
     const wrong = ROOM_3_SAMPLES.filter((s) => r3Choices[s.id] !== s.klass).map((s) => s.id);
     setR3Wrong(wrong);
+    setAttemptsC((a) => a + 1);
+    logEvent('mystery_attempt', { mystery: 'mysteryC', wrong: wrong.length });
     if (wrong.length === 0) {
       setHasLens(true);
       setRoom3Feedback({ text: 'מיון מושלם! פיצחתם את סוד השקיפות 🌟', ok: true });
-      setTimeout(() => setGameState('room3Done'), 900);
+      setTimeout(() => askPulse('c_end', 'room3Done'), 800);
     } else {
       setRoom3Feedback({
         text: `${ROOM_3_SAMPLES.length - wrong.length} נכונות. בחומרים המסומנים באדום — חזרו למדידה: מעל 70% שקוף, 15%–70% חלקית, מתחת ל־15% אטום.`,
@@ -128,6 +171,10 @@ const LightMazeGame: React.FC = () => {
       });
     }
   };
+
+  useEffect(() => {
+    logEvent('session_start');
+  }, []);
 
   useEffect(() => {
     setItems([...allItems].sort(() => Math.random() - 0.5));
@@ -158,6 +205,8 @@ const LightMazeGame: React.FC = () => {
     const wrong = pending.filter((i) => choices[i.id] !== i.type).map((i) => i.id);
     setSolvedIds((p) => [...p, ...correct]);
     setWrongIds(wrong);
+    setAttemptsA((a) => a + 1);
+    logEvent('mystery_attempt', { mystery: 'mysteryA', correct: correct.length, wrong: wrong.length });
     setChoices((p) => {
       const next = { ...p };
       wrong.forEach((id) => delete next[id]);
@@ -166,17 +215,19 @@ const LightMazeGame: React.FC = () => {
 
     if (wrong.length === 0) {
       setFeedback({ text: `כל ${total} הגופים מוינו נכון! 🌟`, ok: true });
-      setTimeout(() => setGameState('peerCheck'), 900);
+      setTimeout(() => askPulse('a_end', 'peerCheck'), 800);
     } else {
       setFeedback({
         text: `${correct.length} תשובות נכונות. ${wrong.length} לא נכונות — שאלו את עצמכם: אם נכבה את כל האורות בחדר, האם עוד נראה את הגוף הזה?`,
         ok: false,
       });
+      setTimeout(() => askPulse('a_mid'), 700);
     }
   };
 
   const submitConclusion = () => {
     if (conclusion === null) return;
+    logEvent('mystery_attempt', { mystery: 'mysteryB', choice: conclusion, correct: conclusion === 1 });
     if (conclusion === 1) {
       setHasTube(true);
       setRoom2Feedback({ text: 'מדויק! האור מתקדם בקו ישר בלבד.', ok: true });
@@ -185,6 +236,7 @@ const LightMazeGame: React.FC = () => {
       setRoom2Feedback({ text: 'לא מדויק. בדקו שוב מה קרה כשכופפתם את הצינור.', ok: false });
     }
   };
+
 
   return (
     <div
