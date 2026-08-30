@@ -7,6 +7,7 @@ import ZoomBookScene from './ZoomBookScene';
 import { LAB_D, LAB_E, FLASHLIGHT_PARTS, FLASHLIGHT_CHAIN, ZOOM_LEVELS } from '@/content/labs';
 import GuideQuiz from './island/GuideQuiz';
 import IslandMap from './island/IslandMap';
+import StoryIntro from './island/StoryIntro';
 import HintBox from './island/HintBox';
 import ResearcherReport from './island/ResearcherReport';
 import { ISLAND, MYSTERIES, PRE_TEST, PULSE_CHECKS } from '@/content/island';
@@ -1179,27 +1180,7 @@ const LightMazeGame: React.FC = () => {
         </div>
 
         {/* Overlays */}
-        {gameState === 'islandIntro' && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/92 backdrop-blur p-6">
-            <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
-              <div className="text-5xl">🏝️</div>
-              <span className="text-[11px] text-accent">{ISLAND.clubName} • קריאת מצוקה</span>
-              <h2 className="text-2xl font-bold text-primary">
-                {ISLAND.title} — {ISLAND.mission}
-              </h2>
-              <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{ISLAND.distressCall}</p>
-              <p className="text-xs text-foreground leading-relaxed">
-                {ISLAND.guideIcon} {ISLAND.guideName}: {ISLAND.guideWelcome}
-              </p>
-              <button
-                onClick={() => setGameState('preTest')}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition hover:-translate-y-0.5"
-              >
-                למבחן הכניסה של המועדון ➡️
-              </button>
-            </div>
-          </div>
-        )}
+        {gameState === 'islandIntro' && <StoryIntro onDone={() => setGameState('preTest')} />}
 
         {gameState === 'preTest' && (
           <GuideQuiz
@@ -1222,7 +1203,7 @@ const LightMazeGame: React.FC = () => {
         {gameState === 'map' && (
           <IslandMap
             solved={solvedMysteries}
-            tools={{ flashlight: hasFlashlight, tube: hasTube, lens: hasLens }}
+            tools={{ flashlight: hasFlashlight, tube: hasTube, lens: hasLens, kit: hasKit, book: hasBook }}
             onEnter={enterMystery}
             onFinish={() => setGameState('report')}
           />
