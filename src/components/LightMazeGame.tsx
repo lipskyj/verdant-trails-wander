@@ -955,17 +955,18 @@ const LightMazeGame: React.FC = () => {
             <div className="max-w-xl game-panel p-8 text-center flex flex-col gap-5">
               <div className="text-5xl animate-bounce">{ROOM_3.reward?.icon}</div>
               <h2 className="text-2xl font-bold text-primary">קיבלתם את {ROOM_3.reward?.name}!</h2>
-              <p className="text-sm text-foreground">{ROOM_3.narrative.unlocked}</p>
+              <p className="text-sm text-foreground">{MYSTERIES[2].rewardLine}</p>
               <p className="text-xs text-muted-foreground leading-relaxed">{ROOM_3.narrative.peerCheck}</p>
-              <div className="game-panel p-4 text-right text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-primary">מה למדתם במבוך:</strong>
-                <br />1. יש גופים שמפיקים אור בעצמם, ואחרים רק מחזירים אור.
-                <br />2. האור מתקדם בקו ישר בלבד.
-                <br />3. חומר שקוף מעביר כמעט את כל האור, חומר אטום חוסם אותו ויוצר צל, ויש גם חומרים שמעבירים אור חלקית.
-              </div>
+              <button
+                onClick={() => finishMystery('mysteryC', 'report')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-xl transition"
+              >
+                להדליק את מדשאת האור ולהגיש דו"ח 📋
+              </button>
             </div>
           </div>
         )}
+
 
       </main>
     </div>
