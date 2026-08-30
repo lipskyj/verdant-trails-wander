@@ -41,10 +41,8 @@ const LightMazeGame: React.FC = () => {
   const [selectedItemInfo, setSelectedItemInfo] = useState<Item | null>(null);
   const [hasFlashlight, setHasFlashlight] = useState(false);
 
-  const mountRef = useRef<HTMLDivElement>(null);
   const sortedIdsRef = useRef<Set<number>>(new Set());
-  const flashlightRef = useRef(false);
-  flashlightRef.current = hasFlashlight;
+
 
   const sceneActive = gameState === 'room1' || gameState === 'peerCheck' || gameState === 'unlocked';
 
