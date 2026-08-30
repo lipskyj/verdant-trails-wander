@@ -2,6 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import LightLabScene from './LightLabScene';
 import DarkBoxScene from './DarkBoxScene';
 import TransparencyScene from './TransparencyScene';
+import GuideQuiz from './island/GuideQuiz';
+import IslandMap from './island/IslandMap';
+import HintBox from './island/HintBox';
+import ResearcherReport from './island/ResearcherReport';
+import { ISLAND, MYSTERIES, PRE_TEST, PULSE_CHECKS } from '@/content/island';
+import { logEvent } from '@/lib/eventLog';
 import {
   LESSONS,
   ROOM_1,
@@ -11,6 +17,7 @@ import {
   type MaterialClass,
   type SortingItem,
 } from '@/content/lessons';
+
 
 
 // --- CONTENT AS DATA (curriculum lives in src/content/lessons.ts) ---
