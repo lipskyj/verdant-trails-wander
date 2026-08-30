@@ -15,7 +15,7 @@ const ResearcherReport: React.FC = () => {
       <GuideQuiz
         items={POST_TEST}
         heading='דו"ח החוקר — ידע נרכש'
-        intro="פיצחתם את שלוש התעלומות והמדשאה נדלקה. לפני חזרה למועדון — מלאו את הדו"ח."
+        intro={'פיצחתם את שלוש התעלומות והמדשאה נדלקה. לפני חזרה למועדון — מלאו את הדו"ח.'}
         logAs="gate_post_answer"
         context="post"
         ctaLabel="לרפלקציה"
