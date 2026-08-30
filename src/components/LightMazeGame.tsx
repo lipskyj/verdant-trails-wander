@@ -1,35 +1,28 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LightLabScene from './LightLabScene';
+import { LESSONS, ROOM_1, type SortingItem } from '@/content/lessons';
 
-// --- CONTENT AS DATA (decoupled) ---
+// --- CONTENT AS DATA (curriculum lives in src/content/lessons.ts) ---
+const lesson = ROOM_1;
 const SIMULATION_DATA = {
   meta: {
-    title: 'מועדון החוקרים: מבוך האור - חדר 1',
-    subject: 'אנרגיית קרינה (אור)',
-    targetGrade: "כיתה ו'",
-    badge: 'כיתה ו׳ | פיילוט אמי״ת',
+    title: lesson.title,
+    subject: lesson.subject,
+    targetGrade: lesson.targetGrade,
+    badge: lesson.badge,
   },
   narrative: {
-    intro:
-      'מסיבת ההפתעה עומדת להתחיל, אך לפתע... האורות מתחילים לעמעם והצבעים בסביבה מאיימים להיעלם! עזרו להציל את החגיגה על ידי הבנת חוקי האור.',
-    room1Task: 'שלב 1: בחרו את מסלול החקר שלכם וזהו את גופים מפיקי האור לעומת מחזירי האור.',
-    peerCheck:
-      'הסתכלו על חבר/ה שיושב/ת לידכם בכיתה. האם שניהם הגעתם לאותה מסקנה לגבי ההבדל בין הירח (מחזיר אור) לשמש (מפיק אור)? הסבירו אחד לשני בקצרה לפני שתקבלו את הפנס.',
-    unlocked:
-      'החדר החשוך הבא במבוך נפתח. כעת תוכלו להמשיך לחקור את התקדמות האור בקו ישר דרך תיבה אפלה.',
+    intro: lesson.narrative.intro,
+    room1Task: lesson.narrative.task,
+    peerCheck: lesson.narrative.peerCheck,
+    unlocked: lesson.narrative.unlocked,
   },
-  sortingItems: [
-    { id: 1, name: 'שמש', type: 'producer', icon: '☀️', color: 0xfacc15, realWorld: 'כוכב המאיר מכוח עצמו במערכת השמש.' },
-    { id: 2, name: 'מראה', type: 'reflector', icon: '🪞', color: 0xa78bfa, realWorld: 'משטח חלק המחזיר אלינו את אור השמש.' },
-    { id: 3, name: 'נורה חשמלית', type: 'producer', icon: '💡', color: 0xfde68a, realWorld: 'מכשיר הממיר אנרגיה חשמלית לאור מלאכותי בביתנו.' },
-    { id: 4, name: 'ירח', type: 'reflector', icon: '🌙', color: 0xc4b5fd, realWorld: 'גוף שמימי שאינו מאיר בעצמו אלא מחזיר את אור השמש.' },
-    { id: 5, name: 'גחלילית', type: 'producer', icon: '🐛', color: 0x86efac, realWorld: 'חרק המייצר אור ביולוגי טבעי בטבע.' },
-    { id: 6, name: 'כדור הארץ', type: 'reflector', icon: '🌍', color: 0x60a5fa, realWorld: 'כוכב לכת המחזיר לחלל חלק מאור השמש הפוגע בו.' },
-  ] as const,
+  sortingItems: lesson.items,
 };
 
-type Item = (typeof SIMULATION_DATA.sortingItems)[number];
+type Item = SortingItem;
 type GameState = 'intro' | 'pathSelect' | 'room1' | 'peerCheck' | 'unlocked';
+
 
 const LightMazeGame: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('intro');
