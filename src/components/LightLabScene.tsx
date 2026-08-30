@@ -160,8 +160,13 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     scene.add(flash, flashTarget);
     flash.target = flashTarget;
 
-    // Physical flashlight body held in view
+    // Physical flashlight body held in view.
+    // The torch model is modelled pointing along -Z, so it lives inside a pivot
+    // that is rotated 180° — that way pivot.lookAt(aim) makes the LENS face the
+    // aim point (previously the tail pointed at the objects).
+    const torchPivot = new THREE.Group();
     const torch = new THREE.Group();
+    torch.rotation.y = Math.PI;
     const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0x22262c, roughness: 0.3, metalness: 0.95, clearcoat: 0.8 });
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.85, 32), bodyMat);
     body.rotation.x = Math.PI / 2;
@@ -178,7 +183,9 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     lens.rotation.y = Math.PI;
     torch.add(lens);
     torch.scale.setScalar(0.6);
-    scene.add(torch);
+    torchPivot.add(torch);
+    scene.add(torchPivot);
+
 
     // Visible volumetric-ish beam cone
     const beamMat = new THREE.MeshBasicMaterial({
