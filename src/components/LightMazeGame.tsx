@@ -67,7 +67,7 @@ type GameState =
   | 'report';
 
 const LightMazeGame: React.FC = () => {
-  const [gameState, setGameState] = useState<GameState>('islandIntro');
+  const [gameState, setGameState] = useState<GameState>((new URLSearchParams(window.location.search).get('dev') as GameState) || 'islandIntro');
   const [solvedMysteries, setSolvedMysteries] = useState<string[]>([]);
   const [pulse, setPulse] = useState<string | null>(null);
   const [pulseDone, setPulseDone] = useState<string[]>([]);
