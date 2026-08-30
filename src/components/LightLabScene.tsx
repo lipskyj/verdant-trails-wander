@@ -611,21 +611,48 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
   return (
     <div ref={mountRef} className="relative w-full h-full bg-background cursor-crosshair">
-      {/* Lab controls */}
-      <div className="absolute top-3 left-3 flex gap-2">
+      {/* Lab controls: explicit on/off switches */}
+      <div className="absolute top-3 left-3 flex flex-col gap-2 items-start">
         <button
           onClick={() => setRoomLight((v) => !v)}
-          className="game-panel px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 transition"
+          aria-pressed={roomLight}
+          className={`game-panel flex items-center gap-2 px-3 py-2 text-xs font-bold transition ${
+            roomLight ? 'text-primary' : 'text-muted-foreground'
+          }`}
         >
-          {roomLight ? '🌑 כבה את אור החדר' : '💡 הדלק את אור החדר'}
+          <span className="text-base">💡</span>
+          <span>אור החדר</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] border ${
+              roomLight
+                ? 'bg-primary/20 border-primary/40 text-primary'
+                : 'bg-muted border-border text-muted-foreground'
+            }`}
+          >
+            {roomLight ? 'דלוק' : 'כבוי'}
+          </span>
         </button>
         <button
           onClick={() => setBeamOn((v) => !v)}
-          className="game-panel px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/10 transition"
+          aria-pressed={beamOn}
+          className={`game-panel flex items-center gap-2 px-3 py-2 text-xs font-bold transition ${
+            beamOn ? 'text-accent' : 'text-muted-foreground'
+          }`}
         >
-          {beamOn ? '🔦 כבה פנס' : '🔦 הדלק פנס'}
+          <span className="text-base">🔦</span>
+          <span>הפנס</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] border ${
+              beamOn
+                ? 'bg-accent/20 border-accent/40 text-accent'
+                : 'bg-muted border-border text-muted-foreground'
+            }`}
+          >
+            {beamOn ? 'דלוק' : 'כבוי'}
+          </span>
         </button>
       </div>
+
 
       {/* Light meter readout */}
       <div className="absolute top-3 right-3 game-panel px-3 py-2 text-xs min-w-[190px]">
