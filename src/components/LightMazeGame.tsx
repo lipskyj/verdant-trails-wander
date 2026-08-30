@@ -309,8 +309,9 @@ const LightMazeGame: React.FC = () => {
               <div className="game-panel p-4 flex flex-col gap-3">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                   <p className="text-xs md:text-sm font-medium text-primary">
-                    {SIMULATION_DATA.narrative.room1Task} סמנו לכל גוף אם הוא <strong>מפיק אור</strong> או{' '}
-                    <strong>מחזיר אור</strong>, ואז לחצו על <strong>"שלחו את המיון"</strong> בלוח המשימה שבצד.
+                    <span className="text-accent">{MYSTERIES[0].code}:</span> {MYSTERIES[0].guideIntro} סמנו לכל גוף אם
+                    הוא <strong>מפיק אור</strong> או <strong>מחזיר אור</strong>, ואז לחצו על{' '}
+                    <strong>"שלחו את המיון"</strong>.
                   </p>
                   <span className="text-xs font-bold text-foreground whitespace-nowrap">
                     מוינו נכון {solvedIds.length} מתוך {total}
@@ -334,6 +335,10 @@ const LightMazeGame: React.FC = () => {
                   </span>
                 )}
               </div>
+
+              <HintBox hints={MYSTERIES[0].hints} mystery="mysteryA" attempts={attemptsA} />
+
+
 
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-3 justify-center">
