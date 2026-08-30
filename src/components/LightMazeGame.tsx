@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LightLabScene from './LightLabScene';
 
 // --- CONTENT AS DATA (decoupled) ---
