@@ -492,9 +492,11 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
       // Room lighting toggle (the "lights off" part of the experiment)
       const on = roomLightRef.current;
-      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.02, dt * 6);
+      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.015, dt * 6);
       ceiling.intensity = THREE.MathUtils.lerp(ceiling.intensity, on ? 6 : 0, dt * 6);
       ceilingSpot.intensity = THREE.MathUtils.lerp(ceilingSpot.intensity, on ? 60 : 0, dt * 6);
+      // dim the image-based light too, otherwise "lights off" still looks lit
+      scene.environmentIntensity = THREE.MathUtils.lerp(scene.environmentIntensity ?? 1, on ? 1 : 0.06, dt * 6);
 
       // Aim the flashlight where the cursor points
       raycaster.setFromCamera(pointer, camera);
@@ -506,13 +508,14 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       }
       flashTarget.position.copy(aim);
 
-      // Flashlight sits between the camera and the bench, held toward the objects
+      // Flashlight is held on the viewer's side of the bench, aimed at the objects
       const holdPos = new THREE.Vector3()
         .copy(camera.position)
-        .lerp(new THREE.Vector3(aim.x, aim.y + 0.9, aim.z), 0.6);
+        .lerp(new THREE.Vector3(aim.x, aim.y + 0.7, aim.z), 0.45);
       flash.position.copy(holdPos);
-      torch.position.copy(holdPos);
-      torch.lookAt(aim);
+      torchPivot.position.copy(holdPos);
+      torchPivot.lookAt(aim);
+
 
       const lit = beamRef.current;
       flash.intensity = THREE.MathUtils.lerp(flash.intensity, lit ? 240 : 0, dt * 10);
