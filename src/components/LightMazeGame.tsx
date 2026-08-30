@@ -496,8 +496,11 @@ const LightMazeGame: React.FC = () => {
                   <span className={`px-2 py-1 rounded-md border ${testedStraight && testedBent ? 'bg-accent/15 text-accent border-accent/30' : 'bg-muted border-border text-muted-foreground'}`}>
                     3. שולחים מסקנה
                   </span>
-                </div>
               </div>
+
+              <HintBox hints={MYSTERIES[1].hints} mystery="mysteryB" attempts={room2Feedback && !room2Feedback.ok ? 1 : 0} />
+
+
 
               <div className="grid grid-cols-1 gap-3">
                 <div className="game-panel p-4 flex flex-col gap-3">
