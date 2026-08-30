@@ -79,7 +79,7 @@ const LightMazeGame: React.FC = () => {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xbfdbfe, 0.35));
+    scene.add(new THREE.AmbientLight(0xbfdbfe, 0.55));
     const hemi = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.5);
     scene.add(hemi);
 
@@ -87,6 +87,13 @@ const LightMazeGame: React.FC = () => {
     coreLight.position.set(0, 3.2, 0);
     coreLight.castShadow = true;
     scene.add(coreLight);
+
+    const fill = new THREE.DirectionalLight(0x93c5fd, 1.1);
+    fill.position.set(8, 14, 10);
+    scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xa78bfa, 0.6);
+    rim.position.set(-10, 8, -12);
+    scene.add(rim);
 
     // Floor with procedural grid texture
     const c = document.createElement('canvas');
@@ -134,7 +141,7 @@ const LightMazeGame: React.FC = () => {
       const h = 5 + (i % 4) * 2;
       const pillar = new THREE.Mesh(
         new THREE.BoxGeometry(2, h, 2),
-        new THREE.MeshStandardMaterial({ color: 0x162236, roughness: 0.7, metalness: 0.25 })
+        new THREE.MeshStandardMaterial({ color: 0x24344f, roughness: 0.7, metalness: 0.25 })
       );
       pillar.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
       pillar.rotation.y = a;
