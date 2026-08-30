@@ -87,22 +87,45 @@ export const ROOM_2: LessonRoom = {
   items: [],
 };
 
+export type MaterialClass = 'transparent' | 'translucent' | 'opaque';
+
+export type MaterialSample = {
+  id: number;
+  name: string;
+  icon: string;
+  /** 0..1 fraction of light passing through */
+  transmission: number;
+  klass: MaterialClass;
+  color: number;
+  realWorld: string;
+};
+
+export const ROOM_3_SAMPLES: readonly MaterialSample[] = [
+  { id: 1, name: 'זכוכית שקופה', icon: '🪟', transmission: 0.92, klass: 'transparent', color: 0xbfe6ff, realWorld: 'חלון בבית — רואים דרכו בבירור, כמעט כל האור עובר.' },
+  { id: 2, name: 'מים בכוס', icon: '💧', transmission: 0.85, klass: 'transparent', color: 0x9fd8ff, realWorld: 'מים נקיים מעבירים אור, ולכן רואים את קרקעית הבריכה.' },
+  { id: 3, name: 'נייר אפייה', icon: '📄', transmission: 0.45, klass: 'translucent', color: 0xf3ecd7, realWorld: 'רואים כתם אור מטושטש — כמו אבוקה מבעד לווילון.' },
+  { id: 4, name: 'שקית פלסטיק חלבית', icon: '🛍️', transmission: 0.35, klass: 'translucent', color: 0xe6ecf2, realWorld: 'אור עובר חלקית, אך לא רואים את הצורה שמעבר.' },
+  { id: 5, name: 'קרטון', icon: '📦', transmission: 0.02, klass: 'opaque', color: 0xb98a5a, realWorld: 'חוסם את האור לחלוטין ויוצר צל מוחלט.' },
+  { id: 6, name: 'לוח מתכת', icon: '🔩', transmission: 0.0, klass: 'opaque', color: 0x9aa6b2, realWorld: 'אטום לגמרי — האור לא עובר, אלא מוחזר.' },
+];
+
 export const ROOM_3: LessonRoom = {
   slug: 'transparent-opaque',
   order: 3,
-  title: 'חדר 3: שקוף או אטום?',
+  title: 'חדר 3: שקוף, חלקית או אטום?',
   subject: 'שקיפות ואטימות חומרים',
   targetGrade: "כיתה ו'",
   badge: 'כיתה ו׳ | פיילוט אמי״ת',
   activity: 'transparency',
-  status: 'coming-soon',
+  status: 'available',
   reward: { icon: '🔬', name: 'עדשת החוקרים' },
   bloom: ['מיון חומרים', 'מדידה והשוואה', 'הכללה'],
   narrative: {
-    intro: 'זכוכית, נייר, קרטון ומים — דרך מי האור עובר, ומי מטיל צל מוחלט?',
-    task: 'האירו על כל חומר ומדדו כמה אור עבר אל הצד השני.',
-    peerCheck: 'סכמו יחד: מה מאפיין חומר שקוף לעומת חומר אטום?',
-    unlocked: 'סיימתם את מבוך האור — המסיבה חזרה לצבעים!',
+    intro:
+      'בקצה המבוך יש דלת סגורה, ורק אור אחד יכול להעיר את הצבעים שמעברה. על שולחן הניסוי שש דוגמאות חומר — האירו על כל אחת, מדדו כמה אור עבר אל המסך, וקבעו אם החומר שקוף, מעביר אור חלקית, או אטום.',
+    task: 'בחרו דוגמה, הדליקו את המנורה, קראו את המדידה על המסך — ואז סמנו לאיזו קבוצה החומר שייך.',
+    peerCheck: 'סכמו יחד עם חבר/ה: מה מאפיין חומר שקוף לעומת חומר אטום, ואיזה חומר בכיתה שייך לכל קבוצה?',
+    unlocked: 'סיימתם את מבוך האור — הצבעים חזרו והמסיבה יכולה להתחיל! 🎉',
   },
   items: [],
 };
@@ -110,3 +133,4 @@ export const ROOM_3: LessonRoom = {
 export const LESSONS: readonly LessonRoom[] = [ROOM_1, ROOM_2, ROOM_3];
 
 export const getLesson = (slug: string) => LESSONS.find((l) => l.slug === slug);
+

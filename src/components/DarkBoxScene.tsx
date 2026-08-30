@@ -1,17 +1,45 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 type Props = {
-  /** straight tube = light reaches the eye */
+  /** bent tube = light cannot reach the eye */
   bent: boolean;
   /** horizontal alignment of the tube against the box opening, -1..1 */
   offset: number;
   onSeen?: (seen: boolean) => void;
 };
 
+/** Hebrew name-tag sprite drawn on a canvas texture */
+const makeLabel = (text: string, color = '#e8f0ff', accent = 'rgba(12,18,28,0.72)') => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.roundRect(8, 24, 496, 80, 26);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.font = 'bold 52px system-ui, "Segoe UI", sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.direction = 'rtl';
+  ctx.fillText(text, 256, 66);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sprite.scale.set(1.55, 0.39, 1);
+  sprite.renderOrder = 10;
+  return sprite;
+};
+
 /**
  * Room 2 experiment: a dark box with a candle inside, observed through a tube.
- * Straight + aligned tube -> the flame is visible. Bent or misaligned -> darkness.
+ * Straight + aligned tube -> the flame is visible. Bent or misaligned -> the ray
+ * visibly stops at the bend / hits the box wall.
  */
 const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -22,15 +50,14 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
   offsetRef.current = offset;
   seenCbRef.current = onSeen;
 
-  const [seen, setSeen] = useState(false);
-
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05070b);
-    const camera = new THREE.PerspectiveCamera(45, mount.clientWidth / mount.clientHeight, 0.05, 100);
+    scene.background = new THREE.Color(0x0a0f18);
+    scene.fog = new THREE.Fog(0x0a0f18, 12, 26);
+    const camera = new THREE.PerspectiveCamera(42, mount.clientWidth / mount.clientHeight, 0.05, 100);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -38,117 +65,191 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xaac4ff, 0.25));
-    const key = new THREE.DirectionalLight(0xffffff, 1.1);
-    key.position.set(3, 6, 4);
+    // --- lighting: dim lab so the candle reads, but everything stays legible
+    scene.add(new THREE.HemisphereLight(0x8fb2ff, 0x1a1206, 0.5));
+    const key = new THREE.DirectionalLight(0xffffff, 1.15);
+    key.position.set(4, 7, 5);
     key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
     scene.add(key);
+    const rim = new THREE.DirectionalLight(0x8ab4ff, 0.5);
+    rim.position.set(-5, 3, -4);
+    scene.add(rim);
 
-    // table
+    // --- table with a subtle procedural wood texture
+    const woodCanvas = document.createElement('canvas');
+    woodCanvas.width = woodCanvas.height = 256;
+    const wc = woodCanvas.getContext('2d')!;
+    wc.fillStyle = '#5b4029';
+    wc.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 220; i++) {
+      wc.strokeStyle = `rgba(0,0,0,${Math.random() * 0.12})`;
+      wc.lineWidth = Math.random() * 2.2;
+      wc.beginPath();
+      wc.moveTo(0, Math.random() * 256);
+      wc.bezierCurveTo(80, Math.random() * 256, 170, Math.random() * 256, 256, Math.random() * 256);
+      wc.stroke();
+    }
+    const woodTex = new THREE.CanvasTexture(woodCanvas);
+    woodTex.colorSpace = THREE.SRGBColorSpace;
+    woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
+    woodTex.repeat.set(3, 1.4);
+
     const table = new THREE.Mesh(
-      new THREE.BoxGeometry(9, 0.16, 4),
-      new THREE.MeshStandardMaterial({ color: 0x5f4630, roughness: 0.6 })
+      new THREE.BoxGeometry(11, 0.2, 5),
+      new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.62, metalness: 0.05 })
     );
     table.position.y = 1.4;
     table.receiveShadow = true;
     scene.add(table);
 
-    // dark box (open front face towards camera-left, hole in the right wall)
-    const boxMat = new THREE.MeshStandardMaterial({ color: 0x24303d, roughness: 0.8, side: THREE.DoubleSide });
+    // --- dark box (front wall omitted = cutaway so kids see the candle inside)
+    const boxMat = new THREE.MeshStandardMaterial({ color: 0x1e2836, roughness: 0.85, metalness: 0.05 });
+    const boxInner = new THREE.MeshStandardMaterial({ color: 0x0c1119, roughness: 0.95, side: THREE.BackSide });
     const box = new THREE.Group();
-    const w = 2.2,
-      h = 1.6,
-      d = 1.8;
-    const panel = (sx: number, sy: number, sz: number, x: number, y: number, z: number, ry = 0) => {
+    const w = 2.4,
+      h = 1.75,
+      d = 2.0;
+    const panel = (sx: number, sy: number, sz: number, x: number, y: number, z: number) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), boxMat);
       m.position.set(x, y, z);
-      m.rotation.y = ry;
       m.castShadow = true;
       m.receiveShadow = true;
       box.add(m);
+      return m;
     };
-    panel(w, h, 0.06, 0, h / 2, -d / 2); // back
-    panel(0.06, h, d, -w / 2, h / 2, 0); // left wall
-    panel(w, 0.06, d, 0, h, 0); // top
-    panel(w, 0.06, d, 0, 0, 0); // bottom
-    // right wall with a hole: build from 4 slabs around the opening
-    const holeR = 0.22;
-    const rw = 0.06;
+    // inner dark shell
+    const shell = new THREE.Mesh(new THREE.BoxGeometry(w - 0.12, h - 0.12, d - 0.12), boxInner);
+    shell.position.y = h / 2;
+    box.add(shell);
+
+    panel(w, h, 0.08, 0, h / 2, -d / 2); // back
+    panel(0.08, h, d, -w / 2, h / 2, 0); // left
+    panel(w, 0.08, d, 0, h, 0); // top
+    panel(w, 0.08, d, 0, 0.02, 0); // bottom
+    // right wall built around a circular opening
+    const holeR = 0.24;
+    const rw = 0.08;
     panel(rw, h / 2 - holeR, d, w / 2, (h / 2 - holeR) / 2, 0);
     panel(rw, h / 2 - holeR, d, w / 2, h - (h / 2 - holeR) / 2, 0);
     panel(rw, holeR * 2, d / 2 - holeR, w / 2, h / 2, -(d / 2 + holeR) / 2);
     panel(rw, holeR * 2, d / 2 - holeR, w / 2, h / 2, (d / 2 + holeR) / 2);
-    box.position.set(-1.1, 1.48, 0);
+    // bright ring around the hole so the target is obvious
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(holeR + 0.03, 0.025, 12, 40),
+      new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xffb347, emissiveIntensity: 1.2 })
+    );
+    ring.rotation.y = Math.PI / 2;
+    ring.position.set(w / 2 + 0.05, h / 2, 0);
+    box.add(ring);
+
+    box.position.set(-1.35, 1.5, 0);
     scene.add(box);
 
-    // candle inside the box
+    const boxLabel = makeLabel('תיבה אפלה');
+    boxLabel.position.set(-1.35, 1.5 + h + 0.45, 0);
+    scene.add(boxLabel);
+
+    const holeLabel = makeLabel('חור התיבה', '#ffe6a8');
+    holeLabel.scale.set(1.2, 0.3, 1);
+    holeLabel.position.set(box.position.x + w / 2 + 0.1, box.position.y + h / 2 - 0.55, 0);
+    scene.add(holeLabel);
+
+    // --- candle inside the box
     const candle = new THREE.Group();
     const wax = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.13, 0.15, 0.5, 24),
-      new THREE.MeshStandardMaterial({ color: 0xf3e5c7, roughness: 0.7 })
+      new THREE.CylinderGeometry(0.13, 0.15, 0.55, 24),
+      new THREE.MeshStandardMaterial({ color: 0xf3e5c7, roughness: 0.65 })
     );
-    wax.position.y = 0.25;
+    wax.position.y = 0.28;
+    wax.castShadow = true;
     const flameMat = new THREE.MeshStandardMaterial({ color: 0xfff2c2, emissive: 0xffb347, emissiveIntensity: 8 });
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.22, 16), flameMat);
-    flame.position.y = 0.62;
-    const flameLight = new THREE.PointLight(0xffb347, 6, 3.2, 2);
-    flameLight.position.y = 0.65;
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.24, 16), flameMat);
+    flame.position.y = 0.68;
+    const flameLight = new THREE.PointLight(0xffb347, 7, 3.6, 2);
+    flameLight.position.y = 0.7;
     candle.add(wax, flame, flameLight);
-    candle.position.set(-1.1, 1.48, 0);
+    candle.position.set(-1.75, 1.5, 0);
     scene.add(candle);
 
-    // tube: two segments so it can be straight or bent
-    const tubeMat = new THREE.MeshStandardMaterial({ color: 0x9aa6b2, roughness: 0.35, metalness: 0.6 });
+    const candleLabel = makeLabel('נר (מקור אור)', '#ffe6a8');
+    candleLabel.position.set(-1.75, 2.55, 0);
+    scene.add(candleLabel);
+
+    // --- tube: two segments so it can be straight or bent
+    const tubeMat = new THREE.MeshStandardMaterial({ color: 0xb9c4d0, roughness: 0.3, metalness: 0.75 });
     const tube = new THREE.Group();
-    const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.1, 24, 1, true), tubeMat);
+    const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 1.15, 28, 1, true), tubeMat);
     seg1.rotation.z = Math.PI / 2;
-    seg1.position.x = 0.55;
+    seg1.position.x = 0.575;
+    seg1.castShadow = true;
+    const joint = new THREE.Mesh(
+      new THREE.SphereGeometry(0.24, 20, 20),
+      new THREE.MeshStandardMaterial({ color: 0x6b7a8c, roughness: 0.35, metalness: 0.8 })
+    );
+    joint.position.x = 1.15;
     const jointPivot = new THREE.Group();
-    jointPivot.position.x = 1.1;
-    const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.1, 24, 1, true), tubeMat);
+    jointPivot.position.x = 1.15;
+    const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 1.15, 28, 1, true), tubeMat);
     seg2.rotation.z = Math.PI / 2;
-    seg2.position.x = 0.55;
+    seg2.position.x = 0.575;
+    seg2.castShadow = true;
     jointPivot.add(seg2);
-    tube.add(seg1, jointPivot);
-    tube.position.set(0.05, 2.28, 0);
+    tube.add(seg1, joint, jointPivot);
+    tube.position.set(-0.05, 2.38, 0);
     scene.add(tube);
 
-    // observer eye at the far end of the tube
+    const tubeLabel = makeLabel('צינור');
+    tubeLabel.position.set(0.55, 2.9, 0);
+    scene.add(tubeLabel);
+
+    // --- observer eye at the far end of the tube
     const eye = new THREE.Group();
     const eyeball = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 32, 32),
-      new THREE.MeshStandardMaterial({ color: 0xf7fbff, roughness: 0.25 })
+      new THREE.SphereGeometry(0.2, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0xf7fbff, roughness: 0.2 })
     );
     const iris = new THREE.Mesh(
-      new THREE.SphereGeometry(0.075, 24, 24),
-      new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.4 })
+      new THREE.SphereGeometry(0.085, 24, 24),
+      new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.35 })
     );
-    iris.position.x = 0.14;
+    iris.position.x = 0.155;
     iris.scale.set(0.5, 1, 1);
     eye.add(eyeball, iris);
-    eye.rotation.y = Math.PI;
     scene.add(eye);
 
-    // glow shown at the eye when light gets through
+    const eyeLabel = makeLabel('העין שלכם');
+    scene.add(eyeLabel);
+
+    // glow at the eye when the light gets through
     const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(0.34, 24, 24),
+      new THREE.SphereGeometry(0.38, 24, 24),
       new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0 })
     );
     scene.add(halo);
 
-    // visible light ray from flame through the tube to the eye
-    const rayMat = new THREE.MeshBasicMaterial({ color: 0xffe6a8, transparent: true, opacity: 0 });
-    const ray = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1, 12), rayMat);
-    ray.rotation.z = Math.PI / 2;
+    // visible light ray: from the flame, stops where it is blocked
+    const rayMat = new THREE.MeshBasicMaterial({ color: 0xffe6a8, transparent: true, opacity: 0.9 });
+    const ray = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 12), rayMat);
     scene.add(ray);
+    // "blocked here" marker
+    const blockMat = new THREE.MeshBasicMaterial({ color: 0xff6b6b, transparent: true, opacity: 0 });
+    const blockDot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), blockMat);
+    scene.add(blockDot);
+    const statusLabelOk = makeLabel('✔ האור מגיע לעין', '#bbf7d0');
+    const statusLabelNo = makeLabel('✖ האור נחסם כאן', '#fecaca');
+    statusLabelOk.visible = false;
+    statusLabelNo.visible = false;
+    scene.add(statusLabelOk, statusLabelNo);
 
-    // orbit
-    let orbit = 0.55,
-      elev = 0.3,
-      dist = 8;
+    // --- orbit controls
+    let orbit = 0.6,
+      elev = 0.32,
+      dist = 8.4;
     let dragging = false,
       lx = 0,
       ly = 0;
@@ -161,7 +262,7 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
     const onMove = (e: PointerEvent) => {
       if (!dragging) return;
       orbit -= (e.clientX - lx) * 0.005;
-      elev = THREE.MathUtils.clamp(elev - (e.clientY - ly) * 0.004, 0.05, 0.9);
+      elev = THREE.MathUtils.clamp(elev - (e.clientY - ly) * 0.004, 0.05, 0.85);
       lx = e.clientX;
       ly = e.clientY;
     };
@@ -170,7 +271,7 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      dist = THREE.MathUtils.clamp(dist * Math.exp(e.deltaY * 0.0012), 4, 15);
+      dist = THREE.MathUtils.clamp(dist * Math.exp(e.deltaY * 0.0012), 4.5, 15);
     };
     el.addEventListener('pointerdown', onDown);
     el.addEventListener('wheel', onWheel, { passive: false });
@@ -182,56 +283,73 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
     let lastSeen: boolean | null = null;
     let bendAngle = 0;
 
+    const flameWorld = new THREE.Vector3();
+
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
 
-      camera.position.set(Math.sin(orbit) * Math.cos(elev) * dist, 2 + Math.sin(elev) * dist * 0.6, Math.cos(orbit) * Math.cos(elev) * dist);
-      camera.lookAt(0, 2.15, 0);
+      camera.position.set(
+        Math.sin(orbit) * Math.cos(elev) * dist,
+        2.1 + Math.sin(elev) * dist * 0.6,
+        Math.cos(orbit) * Math.cos(elev) * dist
+      );
+      camera.lookAt(0, 2.2, 0);
 
       // candle flicker
       flameMat.emissiveIntensity = 7 + Math.sin(t * 9) * 2;
-      flameLight.intensity = 5.5 + Math.sin(t * 11) * 1.5;
+      flameLight.intensity = 6 + Math.sin(t * 11) * 1.6;
       flame.scale.y = 1 + Math.sin(t * 13) * 0.08;
 
-      // tube position follows the alignment slider (z-offset against the hole)
+      // tube slides along z against the hole
       const off = offsetRef.current;
-      tube.position.z = THREE.MathUtils.lerp(tube.position.z, off * 0.9, dt * 8);
-      tube.position.y = THREE.MathUtils.lerp(tube.position.y, 2.28, dt * 8);
-      bendAngle = THREE.MathUtils.lerp(bendAngle, bentRef.current ? -0.85 : 0, dt * 6);
+      tube.position.z = THREE.MathUtils.lerp(tube.position.z, off * 0.95, dt * 8);
+      bendAngle = THREE.MathUtils.lerp(bendAngle, bentRef.current ? -0.9 : 0, dt * 6);
       jointPivot.rotation.y = bendAngle;
 
-      // eye sits at the end of segment 2
-      const endLocal = new THREE.Vector3(1.1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), bendAngle);
-      const eyePos = new THREE.Vector3(tube.position.x + 1.1 + endLocal.x, tube.position.y, tube.position.z + endLocal.z);
-      eye.position.copy(eyePos);
-      eye.lookAt(tube.position.x, tube.position.y, tube.position.z);
+      const jointPos = new THREE.Vector3(tube.position.x + 1.15, tube.position.y, tube.position.z);
+      const endLocal = new THREE.Vector3(1.15, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), bendAngle);
+      const eyePos = jointPos.clone().add(endLocal);
 
-      // does the light get through? straight tube AND aligned with the hole
+      eye.position.copy(eyePos);
+      eye.lookAt(jointPos);
+      eyeLabel.position.copy(eyePos).add(new THREE.Vector3(0, 0.52, 0));
+      tubeLabel.position.set(tube.position.x + 0.6, tube.position.y + 0.5, tube.position.z);
+
       const aligned = Math.abs(off) < 0.22;
       const straight = Math.abs(bendAngle) < 0.12;
       const isSeen = aligned && straight;
 
+      // ray: flame -> (eye | blocking point)
+      candle.getWorldPosition(flameWorld);
+      const a = new THREE.Vector3(flameWorld.x, flameWorld.y + 0.7, flameWorld.z);
+      let b: THREE.Vector3;
+      if (isSeen) b = eyePos.clone();
+      else if (!straight) b = jointPos.clone(); // stopped at the bend
+      else b = new THREE.Vector3(box.position.x + w / 2, tube.position.y, tube.position.z * 0.55); // hits the wall
+
+      ray.position.copy(a).lerp(b, 0.5);
+      const dir = new THREE.Vector3().subVectors(b, a);
+      ray.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+      ray.scale.set(1, Math.max(dir.length(), 0.01), 1);
+      rayMat.color.set(isSeen ? 0xffe6a8 : 0xffc27a);
+      rayMat.opacity = 0.55 + Math.sin(t * 6) * 0.08;
+
       halo.position.copy(eyePos);
-      (halo.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.lerp(
-        (halo.material as THREE.MeshBasicMaterial).opacity,
-        isSeen ? 0.35 + Math.sin(t * 8) * 0.05 : 0,
-        dt * 6
-      );
-      rayMat.opacity = THREE.MathUtils.lerp(rayMat.opacity, isSeen ? 0.85 : 0, dt * 6);
-      if (rayMat.opacity > 0.02) {
-        const a = new THREE.Vector3(candle.position.x, candle.position.y + 0.65, candle.position.z);
-        const b = eyePos.clone();
-        ray.position.copy(a).lerp(b, 0.5);
-        const dir = new THREE.Vector3().subVectors(b, a);
-        ray.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-        ray.scale.set(1, dir.length(), 1);
-      }
+      const hm = halo.material as THREE.MeshBasicMaterial;
+      hm.opacity = THREE.MathUtils.lerp(hm.opacity, isSeen ? 0.36 + Math.sin(t * 8) * 0.05 : 0, dt * 6);
+
+      blockDot.position.copy(b);
+      blockMat.opacity = THREE.MathUtils.lerp(blockMat.opacity, isSeen ? 0 : 0.85, dt * 6);
+
+      statusLabelOk.visible = isSeen;
+      statusLabelOk.position.copy(eyePos).add(new THREE.Vector3(0, 1.0, 0));
+      statusLabelNo.visible = !isSeen;
+      statusLabelNo.position.copy(b).add(new THREE.Vector3(0, 0.55, 0));
 
       if (isSeen !== lastSeen) {
         lastSeen = isSeen;
-        setSeen(isSeen);
         seenCbRef.current?.(isSeen);
       }
 
@@ -240,6 +358,7 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
     animate();
 
     const onResize = () => {
+      if (!mount.clientWidth) return;
       camera.aspect = mount.clientWidth / mount.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -253,6 +372,7 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
       window.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('wheel', onWheel);
+      woodTex.dispose();
       scene.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.isMesh) {
@@ -260,25 +380,18 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
           const mat = m.material as THREE.Material | THREE.Material[];
           Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
         }
+        const s = o as THREE.Sprite;
+        if ((s as any).isSprite) {
+          s.material.map?.dispose();
+          s.material.dispose();
+        }
       });
-      if (el.parentNode === mount) mount.removeChild(el);
       renderer.dispose();
+      if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, []);
 
-  return (
-    <div ref={mountRef} className="relative w-full h-full bg-background cursor-grab">
-      <div className="absolute top-3 right-3 game-panel px-3 py-2 text-xs min-w-[190px]">
-        <div className="font-bold text-primary mb-1">מה רואה העין?</div>
-        <div className={seen ? 'text-accent font-bold' : 'text-muted-foreground font-bold'}>
-          {seen ? '✔ רואים את להבת הנר' : '✖ חשוך — לא רואים את הנר'}
-        </div>
-      </div>
-      <div className="absolute bottom-3 left-3 game-panel px-3 py-1 text-xs text-muted-foreground">
-        גרירה - סיבוב • גלגלת - זום
-      </div>
-    </div>
-  );
+  return <div ref={mountRef} className="w-full h-full" />;
 };
 
 export default DarkBoxScene;
