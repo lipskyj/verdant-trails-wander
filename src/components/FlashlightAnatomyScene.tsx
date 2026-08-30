@@ -290,7 +290,7 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
     // orbit
     let orbit = 0.55,
       elev = 0.28,
-      dist = 11;
+      dist = 14;
     let dragging = false,
       lx = 0,
       ly = 0;
@@ -331,12 +331,13 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
       const t = clock.elapsedTime;
       const s = state.current;
 
+      // מרכז הסצנה מוזז שמאלה כדי שהפנס יופיע ימינה מפאנלי המשימה
       camera.position.set(
-        1.6 + Math.sin(orbit) * Math.cos(elev) * dist,
+        -1.4 + Math.sin(orbit) * Math.cos(elev) * dist,
         2.6 + Math.sin(elev) * dist * 0.55,
         Math.cos(orbit) * Math.cos(elev) * dist
       );
-      camera.lookAt(1.6, 2.6, 0);
+      camera.lookAt(-1.4, 2.6, 0);
 
       const charge = THREE.MathUtils.clamp(s.battery / 100, 0, 1);
       const dead = charge < 0.15;

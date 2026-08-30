@@ -349,17 +349,18 @@ const ZoomBookScene: React.FC<Props> = ({ level, onZoomIn, onZoomOut }) => {
 
     const clock = new THREE.Clock();
     let raf = 0;
-    let camZ = 9;
+    let camZ = 15;
 
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
       const idx = THREE.MathUtils.clamp(state.current.level - 1, 0, levels.length - 1);
-      const targetZ = levels[idx].z + 9;
+      const targetZ = levels[idx].z + 15;
       camZ = THREE.MathUtils.lerp(camZ, targetZ, 1 - Math.exp(-3.2 * dt));
-      camera.position.set(Math.sin(yaw) * 3, 0.6 + pitch * 3, camZ);
-      camera.lookAt(0, 0, levels[idx].z);
+      // מרכז מוזז שמאלה כדי שהאיור יישאר ימינה מפאנלי המשימה
+      camera.position.set(-2.6 + Math.sin(yaw) * 3, 0.6 + pitch * 3, camZ);
+      camera.lookAt(-2.6, 0, levels[idx].z);
 
       levels.forEach((l, i) => {
         const dist = Math.abs(i - (state.current.level - 1));
