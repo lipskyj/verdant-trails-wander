@@ -209,6 +209,9 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       scene.add(group);
     };
 
+    let mirrorCam: THREE.CubeCamera | null = null;
+    let mirrorGlass: THREE.Mesh | null = null;
+
     const slotX = (i: number) => -3 + i * 1.2;
     const findIndex = (id: number) => objects.findIndex((o) => o.id === id);
     const y0 = 1.59;
@@ -240,11 +243,23 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         new THREE.BoxGeometry(0.72, 0.9, 0.06),
         new THREE.MeshPhysicalMaterial({ color: 0x8a6a3a, roughness: 0.35, metalness: 0.6, clearcoat: 0.7 })
       );
+      // True mirror: live cube-camera reflection of the lab
+      const cubeRT = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+      const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
       const glass = new THREE.Mesh(
         new THREE.PlaneGeometry(0.6, 0.78),
-        new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.02, metalness: 1, clearcoat: 1 })
+        new THREE.MeshPhysicalMaterial({
+          color: 0xf2f6ff,
+          roughness: 0.03,
+          metalness: 1,
+          envMap: cubeRT.texture,
+          envMapIntensity: 1.6,
+        })
       );
       glass.position.z = 0.035;
+      mirrorCam = cubeCam;
+      mirrorGlass = glass;
+      g.add(cubeCam);
       const foot = new THREE.Mesh(
         new THREE.BoxGeometry(0.7, 0.05, 0.28),
         new THREE.MeshStandardMaterial({ color: 0x6b5228, roughness: 0.5 })
@@ -306,7 +321,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         p.setXYZ(i, v.x, v.y, v.z);
       }
       geo.computeVertexNormals();
-      const moon = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xbfc3c8, roughness: 0.95, metalness: 0 }));
+      const moon = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x9ba0a6, roughness: 0.95, metalness: 0 }));
       moon.position.y = 0.42;
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(0.16, 0.03, 12, 32),
@@ -538,6 +553,12 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       if (key !== lastKey) {
         lastKey = key;
         setReadout(best);
+      }
+
+      if (mirrorCam && mirrorGlass) {
+        mirrorGlass.visible = false;
+        mirrorCam.update(renderer, scene);
+        mirrorGlass.visible = true;
       }
 
       renderer.render(scene, camera);
