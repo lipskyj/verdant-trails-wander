@@ -120,16 +120,16 @@ const ZoomBookScene: React.FC<Props> = ({ level, onZoomIn, onZoomOut }) => {
       island.position.set(0.9, 0.6, 2.0);
       island.scale.set(1, 0.55, 0.7);
       const sun = new THREE.Mesh(new THREE.SphereGeometry(0.85, 28, 20), glow(0xffd166));
-      sun.position.set(5.4, 2.6, 2);
+      sun.position.set(3.4, 3.2, 2);
       const sunLight = new THREE.PointLight(0xffe6a8, 22, 30);
       sunLight.position.copy(sun.position);
       const rayMat = new THREE.MeshBasicMaterial({ color: 0xffe9b0, transparent: true, opacity: 0.35 });
       for (let i = -1; i <= 1; i++) {
-        const ray = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.05, 0.05), rayMat);
-        ray.position.set(2.5, 2.4 + i * 1.1, 1.6);
+        const ray = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.05, 0.05), rayMat);
+        ray.position.set(0.4, 2.4 + i * 0.9, 1.6);
         g.add(ray);
       }
-      g.add(planet, island, sun, sunLight, (() => { const l = makeLabel('☀️ שמש — מפיקת אור', '#fde68a', 2.2); l.position.set(5.4, 4.0, 2); return l; })());
+      g.add(planet, island, sun, sunLight, (() => { const l = makeLabel('☀️ שמש — מפיקת אור', '#fde68a', 2.2); l.position.set(3.2, 4.6, 2); return l; })());
       const nightLbl = makeLabel('צד הלילה — האור לא מתעקל', '#c7d2fe', 2.4);
       nightLbl.position.set(-3.2, -2.6, 0.6);
       g.add(nightLbl);
@@ -349,14 +349,14 @@ const ZoomBookScene: React.FC<Props> = ({ level, onZoomIn, onZoomOut }) => {
 
     const clock = new THREE.Clock();
     let raf = 0;
-    let camZ = 15;
+    let camZ = 17;
 
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
       const idx = THREE.MathUtils.clamp(state.current.level - 1, 0, levels.length - 1);
-      const targetZ = levels[idx].z + 15;
+      const targetZ = levels[idx].z + 17;
       camZ = THREE.MathUtils.lerp(camZ, targetZ, 1 - Math.exp(-3.2 * dt));
       // מרכז מוזז שמאלה כדי שהאיור יישאר ימינה מפאנלי המשימה
       camera.position.set(-2.6 + Math.sin(yaw) * 3, 0.6 + pitch * 3, camZ);
