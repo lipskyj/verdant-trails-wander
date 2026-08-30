@@ -41,8 +41,10 @@ const SIMULATION_DATA = {
 type Item = SortingItem;
 type Choice = 'producer' | 'reflector';
 type GameState =
+  | 'islandIntro'
+  | 'preTest'
+  | 'map'
   | 'intro'
-
   | 'pathSelect'
   | 'room1'
   | 'peerCheck'
@@ -52,10 +54,17 @@ type GameState =
   | 'room2Done'
   | 'room3Intro'
   | 'room3'
-  | 'room3Done';
+  | 'room3Done'
+  | 'report';
 
 const LightMazeGame: React.FC = () => {
-  const [gameState, setGameState] = useState<GameState>('intro');
+  const [gameState, setGameState] = useState<GameState>('islandIntro');
+  const [solvedMysteries, setSolvedMysteries] = useState<string[]>([]);
+  const [pulse, setPulse] = useState<string | null>(null);
+  const [pulseDone, setPulseDone] = useState<string[]>([]);
+  const [pulseNext, setPulseNext] = useState<GameState | null>(null);
+  const [attemptsA, setAttemptsA] = useState(0);
+  const [attemptsC, setAttemptsC] = useState(0);
   const [learningPath, setLearningPath] = useState<'producersFirst' | 'reflectorsFirst' | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [choices, setChoices] = useState<Record<number, Choice>>({});
@@ -66,6 +75,7 @@ const LightMazeGame: React.FC = () => {
   const [hasFlashlight, setHasFlashlight] = useState(false);
   const [hasTube, setHasTube] = useState(false);
   const [hasLens, setHasLens] = useState(false);
+
 
   // room 2 state
   const [prediction, setPrediction] = useState<'yes' | 'no' | null>(null);
