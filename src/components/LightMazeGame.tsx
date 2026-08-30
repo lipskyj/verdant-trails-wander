@@ -296,7 +296,7 @@ const LightMazeGame: React.FC = () => {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-              מעבדת האופטיקה תיפתח לאחר בחירת מסלול החקר
+              אזור הניסוי ייפתח כשתיכנסו לתעלומה מהמפה
             </div>
           )}
         </div>
@@ -837,7 +837,7 @@ const LightMazeGame: React.FC = () => {
               <div className="text-3xl">🧭</div>
               <h2 className="text-xl font-bold text-primary">בחרו את מסלול החקר שלכם</h2>
               <p className="text-muted-foreground text-sm">
-                המבוך מאפשר לכם בחירה אישית באיזה סוג אובייקטים להתחיל לחקור קודם:
+                שומר האי מאפשר לכם לבחור באיזה סוג גופים להתחיל לחקור קודם:
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
