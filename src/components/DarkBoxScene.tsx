@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { disposeScene } from '@/lib/sceneDispose';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
@@ -366,21 +367,7 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
       window.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('wheel', onWheel);
-      woodTex.dispose();
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.geometry.dispose();
-          const mat = m.material as THREE.Material | THREE.Material[];
-          Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
-        }
-        const s = o as THREE.Sprite;
-        if ((s as any).isSprite) {
-          s.material.map?.dispose();
-          s.material.dispose();
-        }
-      });
-      renderer.dispose();
+      disposeScene(scene, renderer, [woodTex]);
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, []);

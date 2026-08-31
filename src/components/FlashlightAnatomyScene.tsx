@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { disposeScene } from '@/lib/sceneDispose';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
@@ -411,20 +412,7 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('pointerup', onClick);
       el.removeEventListener('wheel', onWheel);
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.geometry.dispose();
-          const mat = m.material as THREE.Material | THREE.Material[];
-          Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
-        }
-        const sp = o as THREE.Sprite;
-        if ((sp as unknown as { isSprite?: boolean }).isSprite) {
-          sp.material.map?.dispose();
-          sp.material.dispose();
-        }
-      });
-      renderer.dispose();
+      disposeScene(scene, renderer, []);
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, []);

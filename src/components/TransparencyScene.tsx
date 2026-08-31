@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { disposeScene } from '@/lib/sceneDispose';
 import { transmittedPct } from '@/sim/light';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
@@ -317,20 +318,7 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
       window.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('wheel', onWheel);
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.geometry.dispose();
-          const mat = m.material as THREE.Material | THREE.Material[];
-          Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
-        }
-        const sp = o as THREE.Sprite;
-        if ((sp as any).isSprite) {
-          sp.material.map?.dispose();
-          sp.material.dispose();
-        }
-      });
-      renderer.dispose();
+      disposeScene(scene, renderer, []);
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, []);
