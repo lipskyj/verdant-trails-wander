@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { tubeSight } from '@/sim/light';
 import { disposeScene } from '@/lib/sceneDispose';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
@@ -312,9 +313,12 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
       eyeLabel.position.copy(eyePos).add(new THREE.Vector3(0, 0.52, 0));
       tubeLabel.position.set(tube.position.x + 0.6, tube.position.y + 0.5, tube.position.z);
 
-      const aligned = Math.abs(off) < 0.22;
-      const straight = Math.abs(bendAngle) < 0.12;
-      const isSeen = aligned && straight;
+      // The scientific verdict is decided by the MODEL inputs (offset + bent),
+      // never by bendAngle — that is a render-only tween, so grading on it made
+      // correctness depend on frame rate.
+      const sight = tubeSight({ offset: off, bent: bentRef.current });
+      const isSeen = sight.seen;
+      const straight = !bentRef.current;
 
       // ray: flame -> (eye | blocking point)
       candle.getWorldPosition(flameWorld);

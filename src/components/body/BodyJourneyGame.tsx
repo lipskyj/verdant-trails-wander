@@ -74,6 +74,8 @@ const BodyJourneyGame: React.FC = () => {
   // --- לולאת סימולציה קצרה לכל התחנות שמודדות זמן
   const raf = useRef<number>();
   const tries = useRef(0);
+  // tag this session's analytics with the content pack it belongs to
+  useEffect(() => setPackId('digestion-v1'), []);
   useEffect(() => {
     let last = performance.now();
     const tick = (now: number) => {
