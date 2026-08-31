@@ -74,6 +74,7 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
 
     const renderer = makeSceneRenderer(mount, { exposure: 1.05 });
     const budget = getTier();
+    const reducedMotion = prefersReducedMotion();
 
     scene.add(new THREE.HemisphereLight(0x93b4ff, 0x14121a, 0.65));
     const key = new THREE.DirectionalLight(0xffffff, 1.15);
@@ -233,7 +234,9 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
       side: THREE.DoubleSide,
       depthWrite: false,
     });
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.7, 6, 28, 1, true), beamMat);
+    // radiusTop is the END that ends up downstream after the -90° Z rotation, so the
+    // narrow radius must be at the torch: light spreads as it travels, never converges.
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 0.5, 6, 28, 1, true), beamMat);
     beam.rotation.z = -Math.PI / 2;
     beam.position.set(4.6, Y, 0);
     scene.add(beam);
@@ -368,9 +371,10 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
         );
       }
 
-      // flicker when almost empty
-      if (!dead && charge < 0.35 && power > 0) {
-        const f = 0.7 + 0.3 * Math.sin(t * 22 + Math.sin(t * 7) * 3);
+      // Flicker when almost empty. WCAG 2.3.1: stay under 3 flashes/second and keep
+      // the luminance swing small — and skip it entirely under prefers-reduced-motion.
+      if (!dead && charge < 0.35 && power > 0 && !reducedMotion) {
+        const f = 0.85 + 0.15 * Math.sin(t * 17 + Math.sin(t * 5) * 2);
         beamMat.opacity *= f;
         filamentMat.emissiveIntensity *= f;
       }
