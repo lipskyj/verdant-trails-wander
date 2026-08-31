@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { fitText } from '@/lib/canvasText';
 import { disposeScene } from '@/lib/sceneDispose';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
@@ -33,7 +34,7 @@ const makeLabel = (text: string, color = '#e8f0ff') => {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.direction = 'rtl';
-    ctx.fillText(t, 256, 66, 470);
+    fitText(ctx, t, 256, 66, 470);
   };
   draw(text, color);
   const tex = new THREE.CanvasTexture(canvas);

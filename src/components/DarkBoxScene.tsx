@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { fitText } from '@/lib/canvasText';
 import { tubeSight } from '@/sim/light';
 import { disposeScene } from '@/lib/sceneDispose';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
@@ -30,7 +31,7 @@ const makeLabel = (text: string, color = '#e8f0ff', accent = 'rgba(12,18,28,0.72
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.direction = 'rtl';
-  ctx.fillText(text, 256, 66, 470);
+  fitText(ctx, text, 256, 66, 470);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));

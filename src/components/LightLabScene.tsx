@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { fitText } from '@/lib/canvasText';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 import { disposeScene } from '@/lib/sceneDispose';
 import {
@@ -257,7 +258,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#e8f5ff';
       ctx.direction = 'rtl';
-      ctx.fillText(text, 256, 66, 470);
+      fitText(ctx, text, 256, 66, 470);
       const tex = new THREE.CanvasTexture(c);
       tex.colorSpace = THREE.SRGBColorSpace;
       labelTextures.push(tex);
