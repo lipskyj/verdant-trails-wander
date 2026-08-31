@@ -108,8 +108,27 @@ export function attachOrbit(el: HTMLElement, opts: OrbitOpts = {}) {
     s.dist = THREE.MathUtils.clamp(s.dist * Math.exp(dy * 0.0012), min, max);
   };
 
+  // נגישות: הסצנה מקבלת פוקוס ונשלטת גם בחצי המקלדת, לא רק בעכבר.
+  const onKey = (e: KeyboardEvent) => {
+    const step = 0.12;
+    if (e.key === 'ArrowLeft') s.orbit += step;
+    else if (e.key === 'ArrowRight') s.orbit -= step;
+    else if (e.key === 'ArrowUp') s.elev = THREE.MathUtils.clamp(s.elev + 0.06, 0.03, 0.9);
+    else if (e.key === 'ArrowDown') s.elev = THREE.MathUtils.clamp(s.elev - 0.06, 0.03, 0.9);
+    else if (e.key === '+' || e.key === '=') s.dist = THREE.MathUtils.clamp(s.dist * 0.9, min, max);
+    else if (e.key === '-' || e.key === '_') s.dist = THREE.MathUtils.clamp(s.dist * 1.1, min, max);
+    else return;
+    e.preventDefault();
+  };
+
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+  el.setAttribute('role', 'application');
+  el.setAttribute('aria-label', 'סצנת ניסוי תלת־ממדית — חצים לסיבוב, פלוס ומינוס לזום');
+  el.style.outlineOffset = '2px';
+
   el.addEventListener('pointerdown', onDown);
   el.addEventListener('wheel', onWheel, { passive: false });
+  el.addEventListener('keydown', onKey);
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
 
@@ -118,6 +137,7 @@ export function attachOrbit(el: HTMLElement, opts: OrbitOpts = {}) {
     dispose() {
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('keydown', onKey);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     },
