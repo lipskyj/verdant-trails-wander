@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
   /** bent tube = light cannot reach the eye */
@@ -59,22 +60,15 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
     scene.fog = new THREE.Fog(0x0a0f18, 12, 26);
     const camera = new THREE.PerspectiveCamera(42, mount.clientWidth / mount.clientHeight, 0.05, 100);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    mount.appendChild(renderer.domElement);
+    const renderer = makeSceneRenderer(mount, { exposure: 1.05 });
+    const budget = getTier();
 
     // --- lighting: dim lab so the candle reads, but everything stays legible
     scene.add(new THREE.HemisphereLight(0x8fb2ff, 0x1a1206, 0.5));
     const key = new THREE.DirectionalLight(0xffffff, 1.15);
     key.position.set(4, 7, 5);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.castShadow = budget.shadows;
+    key.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     scene.add(key);
     const rim = new THREE.DirectionalLight(0x8ab4ff, 0.5);
     rim.position.set(-5, 3, -4);

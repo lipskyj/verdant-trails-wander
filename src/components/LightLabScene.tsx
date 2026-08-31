@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export type LabObject = {
@@ -91,15 +92,8 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
     const camera = new THREE.PerspectiveCamera(45, mount.clientWidth / mount.clientHeight, 0.05, 100);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    mount.appendChild(renderer.domElement);
+    const renderer = makeSceneRenderer(mount, { exposure: 1.05 });
+    const budget = getTier();
 
     // Image-based lighting for realistic reflections
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -158,15 +152,15 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     const ceilingSpot = new THREE.SpotLight(0xfff1d6, 60, 20, 0.9, 0.6, 1.4);
     ceilingSpot.position.set(0, 7, 1.5);
     ceilingSpot.target.position.set(0, 1.5, 0);
-    ceilingSpot.castShadow = true;
-    ceilingSpot.shadow.mapSize.set(2048, 2048);
+    ceilingSpot.castShadow = budget.shadows;
+    ceilingSpot.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     ceilingSpot.shadow.bias = -0.0004;
     scene.add(ceilingSpot, ceilingSpot.target);
 
     // --- FLASHLIGHT (the experiment tool) ---
     const flash = new THREE.SpotLight(0xfff6e0, 240, 22, 0.28, 0.45, 1.6);
-    flash.castShadow = true;
-    flash.shadow.mapSize.set(2048, 2048);
+    flash.castShadow = budget.shadows;
+    flash.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     flash.shadow.bias = -0.0005;
     const flashTarget = new THREE.Object3D();
     scene.add(flash, flashTarget);
@@ -263,6 +257,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     };
 
 
+    let frame = 0;
     let mirrorCam: THREE.CubeCamera | null = null;
     let mirrorGlass: THREE.Mesh | null = null;
 
@@ -298,7 +293,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         new THREE.MeshPhysicalMaterial({ color: 0x8a6a3a, roughness: 0.35, metalness: 0.6, clearcoat: 0.7 })
       );
       // True mirror: live cube-camera reflection of the lab
-      const cubeRT = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+      const cubeRT = new THREE.WebGLCubeRenderTarget(budget.reflections ? 256 : 128, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
       const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
       const glass = new THREE.Mesh(
         new THREE.PlaneGeometry(0.6, 0.78),
@@ -614,11 +609,14 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         setReadout(best);
       }
 
-      if (mirrorCam && mirrorGlass) {
+      // Live cube-camera reflection is a tier-0/1 luxury; on weak GPUs the mirror
+      // keeps its static environment map and still reads as a reflector.
+      if (mirrorCam && mirrorGlass && budget.reflections && frame % 3 === 0) {
         mirrorGlass.visible = false;
         mirrorCam.update(renderer, scene);
         mirrorGlass.visible = true;
       }
+      frame++;
 
       renderer.render(scene, camera);
     };

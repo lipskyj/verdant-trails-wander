@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
   /** 0..1 how much light passes through the sample */
@@ -72,21 +73,14 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
     scene.fog = new THREE.Fog(0x0b0f17, 13, 28);
     const camera = new THREE.PerspectiveCamera(42, mount.clientWidth / mount.clientHeight, 0.05, 100);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    mount.appendChild(renderer.domElement);
+    const renderer = makeSceneRenderer(mount, { exposure: 1.05 });
+    const budget = getTier();
 
     scene.add(new THREE.HemisphereLight(0x8fb2ff, 0x121018, 0.6));
     const key = new THREE.DirectionalLight(0xffffff, 1.0);
     key.position.set(2, 7, 6);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.castShadow = budget.shadows;
+    key.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     scene.add(key);
     const rim = new THREE.DirectionalLight(0x8ab4ff, 0.45);
     rim.position.set(-6, 3, -4);
@@ -128,8 +122,8 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
 
     const spot = new THREE.SpotLight(0xfff3d6, 55, 12, 0.34, 0.45, 1.4);
     spot.position.set(-2.8, 2.55, 0);
-    spot.castShadow = true;
-    spot.shadow.mapSize.set(1024, 1024);
+    spot.castShadow = budget.shadows;
+    spot.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     scene.add(spot);
     const spotTarget = new THREE.Object3D();
     spotTarget.position.set(3.2, 2.55, 0);

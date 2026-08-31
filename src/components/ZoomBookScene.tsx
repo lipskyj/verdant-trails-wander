@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
   /** 1..6 — רמת קנה המידה הנוכחית */
@@ -54,13 +55,9 @@ const ZoomBookScene: React.FC<Props> = ({ level, onZoomIn, onZoomOut }) => {
     scene.background = new THREE.Color(0x070b12);
     const camera = new THREE.PerspectiveCamera(48, mount.clientWidth / mount.clientHeight, 0.05, 400);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    mount.appendChild(renderer.domElement);
+    const renderer = makeSceneRenderer(mount, { exposure: 1.1 });
+    const budget = getTier();
+    const reducedMotion = prefersReducedMotion();
 
     scene.add(new THREE.HemisphereLight(0x9dbcff, 0x14121c, 0.8));
     const key = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -357,7 +354,8 @@ const ZoomBookScene: React.FC<Props> = ({ level, onZoomIn, onZoomOut }) => {
       const t = clock.elapsedTime;
       const idx = THREE.MathUtils.clamp(state.current.level - 1, 0, levels.length - 1);
       const targetZ = levels[idx].z + 17;
-      camZ = THREE.MathUtils.lerp(camZ, targetZ, 1 - Math.exp(-3.2 * dt));
+      // תנועה מופחתת: חיתוך מיידי בין רמות הזום במקום טיסה — בטיחות וסטיבולרית.
+      camZ = reducedMotion ? targetZ : THREE.MathUtils.lerp(camZ, targetZ, 1 - Math.exp(-3.2 * dt));
       // מרכז מוזז שמאלה כדי שהאיור יישאר ימינה מפאנלי המשימה
       camera.position.set(-2.6 + Math.sin(yaw) * 3, 0.6 + pitch * 3, camZ);
       camera.lookAt(-2.6, 0, levels[idx].z);
