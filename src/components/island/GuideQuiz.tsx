@@ -29,6 +29,7 @@ const GuideQuiz: React.FC<Props> = ({
   logAs,
   context,
   ctaLabel = 'המשך',
+  revealCorrect = true,
   guideName = ISLAND.guideName,
   guideIcon = ISLAND.guideIcon,
   onDone,
