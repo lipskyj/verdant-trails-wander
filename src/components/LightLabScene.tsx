@@ -1,6 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
+import { disposeScene } from '@/lib/sceneDispose';
+import {
+  SOURCE_CANDELA,
+  ROOM_LUX_ON,
+  ROOM_LUX_OFF,
+  luxAt,
+  inCone,
+  measure,
+  classifyFromReading,
+  formatLux,
+} from '@/sim/light';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export type LabObject = {
@@ -61,11 +72,16 @@ function makeConcreteTexture() {
 const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [roomLight, setRoomLight] = useState(true);
-  const [beamOn, setBeamOn] = useState(true);
-  const [readout, setReadout] = useState<{ name: string; lux: number; self: boolean } | null>(null);
+  // the torch starts OFF: mystery A asks "what still glows when everything is off?"
+  const [beamOn, setBeamOn] = useState(false);
+  const [readout, setReadout] = useState<{
+    name: string;
+    lux: number;
+    verdict: 'producer' | 'reflector' | 'unknown';
+  } | null>(null);
 
   const roomLightRef = useRef(true);
-  const beamRef = useRef(true);
+  const beamRef = useRef(false);
   const inspectRef = useRef(onInspect);
   roomLightRef.current = roomLight;
   beamRef.current = beamOn;
@@ -97,7 +113,17 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
     // Image-based lighting for realistic reflections
     const pmrem = new THREE.PMREMGenerator(renderer);
-    const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+    // RoomEnvironment(renderer) — without the argument r160 bakes the PMREM from a
+    // 5-intensity light instead of 900, i.e. 180× too dim (and would silently jump on upgrade).
+    const roomEnvScene = new RoomEnvironment(renderer);
+    const envRT = pmrem.fromScene(roomEnvScene, 0.04);
+    roomEnvScene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      m.geometry?.dispose();
+      const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
+      else mat?.dispose();
+    });
     scene.environment = envRT.texture;
 
     // --- ROOM ---
@@ -145,16 +171,18 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     // --- AMBIENT / ROOM LIGHTING ---
     const ambient = new THREE.AmbientLight(0xbcd2f0, 0.35);
     scene.add(ambient);
-    const ceiling = new THREE.RectAreaLight(0xfff3dd, 6, 8, 3);
-    ceiling.position.set(0, 6.5, 0.5);
-    ceiling.lookAt(0, 1.5, 0);
-    scene.add(ceiling);
+    // (A RectAreaLight used to sit here. RectAreaLightUniformsLib was never
+    // initialised, so it emitted nothing while forcing the LTC BRDF path into
+    // every material — removed.)
     const ceilingSpot = new THREE.SpotLight(0xfff1d6, 60, 20, 0.9, 0.6, 1.4);
     ceilingSpot.position.set(0, 7, 1.5);
     ceilingSpot.target.position.set(0, 1.5, 0);
     ceilingSpot.castShadow = budget.shadows;
     ceilingSpot.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     ceilingSpot.shadow.bias = -0.0004;
+    // the ceiling light and everything it shadows are static: render its map once
+    ceilingSpot.shadow.autoUpdate = false;
+    ceilingSpot.shadow.needsUpdate = true;
     scene.add(ceilingSpot, ceilingSpot.target);
 
     // --- FLASHLIGHT (the experiment tool) ---
@@ -535,7 +563,6 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       // Room lighting toggle (the "lights off" part of the experiment)
       const on = roomLightRef.current;
       ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.015, dt * 6);
-      ceiling.intensity = THREE.MathUtils.lerp(ceiling.intensity, on ? 6 : 0, dt * 6);
       ceilingSpot.intensity = THREE.MathUtils.lerp(ceilingSpot.intensity, on ? 60 : 0, dt * 6);
       // drop the image-based light too, otherwise "lights off" still looks lit
       const wantEnv = on ? envRT.texture : null;
