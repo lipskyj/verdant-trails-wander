@@ -6,10 +6,18 @@ interface Props {
   hints: string[];
   mystery: string;
   attempts?: number;
+  guideName?: string;
+  guideIcon?: string;
 }
 
 /** Progressive hints from the guide — every reveal is logged. */
-const HintBox: React.FC<Props> = ({ hints, mystery, attempts = 0 }) => {
+const HintBox: React.FC<Props> = ({
+  hints,
+  mystery,
+  attempts = 0,
+  guideName = ISLAND.guideName,
+  guideIcon = ISLAND.guideIcon,
+}) => {
   const [open, setOpen] = useState(0);
   const nudge = attempts > 0 && open === 0;
 
@@ -22,8 +30,8 @@ const HintBox: React.FC<Props> = ({ hints, mystery, attempts = 0 }) => {
   return (
     <div className="game-panel p-3 flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="text-lg">{ISLAND.guideIcon}</span>
-        <span className="text-xs font-bold text-primary">רמזים של {ISLAND.guideName}</span>
+        <span className="text-lg">{guideIcon}</span>
+        <span className="text-xs font-bold text-primary">רמזים של {guideName}</span>
         {open < hints.length && (
           <button
             onClick={reveal}

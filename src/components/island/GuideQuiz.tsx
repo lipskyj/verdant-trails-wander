@@ -9,11 +9,25 @@ interface Props {
   logAs: IslandEventType;
   context?: string;
   ctaLabel?: string;
+  /** שם הדמות המלווה — ברירת המחדל היא שומר האי */
+  guideName?: string;
+  guideIcon?: string;
   onDone: (results: { id: string; choice: number; correct: boolean }[]) => void;
 }
 
 /** The guide character asks MCQs — used for the entry gate and the in-mystery pulse checks. */
-const GuideQuiz: React.FC<Props> = ({ items, heading, intro, logAs, context, ctaLabel = 'המשך', onDone }) => {
+const GuideQuiz: React.FC<Props> = ({
+  items,
+  heading,
+  intro,
+  logAs,
+  context,
+  ctaLabel = 'המשך',
+  guideName = ISLAND.guideName,
+  guideIcon = ISLAND.guideIcon,
+  onDone,
+}) => {
+
   const [index, setIndex] = useState(0);
   const [choice, setChoice] = useState<number | null>(null);
   const [shown, setShown] = useState(false);
@@ -54,9 +68,10 @@ const GuideQuiz: React.FC<Props> = ({ items, heading, intro, logAs, context, cta
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/92 backdrop-blur p-4 md:p-6">
       <div className="game-panel w-full max-w-xl p-6 md:p-7 flex flex-col gap-4 text-right">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{ISLAND.guideIcon}</span>
+          <span className="text-3xl">{guideIcon}</span>
           <div className="flex flex-col">
-            <span className="text-[11px] text-muted-foreground">{ISLAND.guideName}</span>
+            <span className="text-[11px] text-muted-foreground">{guideName}</span>
+
             <h2 className="text-lg font-bold text-primary">{heading}</h2>
           </div>
           <span className="ms-auto text-[11px] text-muted-foreground whitespace-nowrap">
