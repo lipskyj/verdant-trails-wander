@@ -267,7 +267,8 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       return sp;
     };
 
-    const register = (group: THREE.Object3D, id: number, self: boolean, name: string) => {
+    /** @param candela luminous intensity the body PRODUCES itself (0 for reflectors) */
+    const register = (group: THREE.Object3D, id: number, candela: number, name: string) => {
       group.traverse((o) => {
         o.userData.id = id;
         if ((o as THREE.Mesh).isMesh) {
@@ -279,7 +280,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       label.position.set(0, 1.02, 0);
       label.userData.id = id;
       group.add(label);
-      group.userData = { id, self, name };
+      group.userData = { id, candela, self: candela > 0, name };
       targets.push(group);
       scene.add(group);
     };
@@ -308,7 +309,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       sunLight.position.y = 0.55;
       g.add(sun, stand, sunLight);
       g.position.set(slotX(findIndex(1)), y0, 0);
-      register(g, 1, true, 'שמש');
+      register(g, 1, SOURCE_CANDELA.sun, 'מודל השמש');
     }
 
     // 2 - MIRROR: real reflective glass in a frame
@@ -341,7 +342,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       g.add(frame, glass, foot);
       g.position.set(slotX(findIndex(2)), y0 + 0.47, -0.2);
       g.rotation.y = -0.25;
-      register(g, 2, false, 'מראה');
+      register(g, 2, 0, 'מראה');
     }
 
     // 3 - LIGHT BULB: glass envelope, filament, real emitted light
@@ -378,7 +379,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       bulbLight.position.y = 0.62;
       g.add(glass, socket, stand, filament, bulbLight);
       g.position.set(slotX(findIndex(3)), y0, 0.1);
-      register(g, 3, true, 'נורה חשמלית');
+      register(g, 3, SOURCE_CANDELA.bulb, 'נורה חשמלית');
     }
 
     // 4 - MOON: cratered dusty rock, no light of its own
@@ -404,7 +405,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       ring.position.y = 0.13;
       g.add(moon, ring);
       g.position.set(slotX(findIndex(4)), y0, -0.1);
-      register(g, 4, false, 'ירח');
+      register(g, 4, 0, 'מודל הירח');
     }
 
     // 5 - FIREFLY IN A GLASS JAR: bioluminescent, glows on its own
@@ -444,7 +445,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       g.add(jar, lid, bugGroup);
       g.position.set(slotX(findIndex(5)), y0, 0.15);
       g.userData.bug = bugGroup;
-      register(g, 5, true, 'גחלילית');
+      register(g, 5, SOURCE_CANDELA.firefly, 'גחלילית');
       g.userData.bug = bugGroup;
     }
 
@@ -488,7 +489,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       g.add(globe, axis, base);
       g.position.set(slotX(findIndex(6)), y0, -0.05);
       g.userData.globe = globe;
-      register(g, 6, false, 'כדור הארץ');
+      register(g, 6, 0, 'גלובוס כדור הארץ');
       g.userData.globe = globe;
     }
 
@@ -541,6 +542,20 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     el.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+
+    // Materials whose IBL contribution is animated by the room-light switch.
+    const envMaterials: THREE.MeshStandardMaterial[] = [];
+    scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      const list = Array.isArray(m) ? m : m ? [m] : [];
+      list.forEach((mat) => {
+        const std = mat as THREE.MeshStandardMaterial;
+        if (!('envMapIntensity' in std)) return;
+        std.userData.baseEnv = std.envMapIntensity ?? 1;
+        envMaterials.push(std);
+      });
+    });
+    let envTarget = 1;
 
     const aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0.35);
     const aim = new THREE.Vector3(0, 1.9, 0);
