@@ -20,6 +20,7 @@ import EsophagusScene from './EsophagusScene';
 import StomachScene from './StomachScene';
 import IntestineZoomScene from './IntestineZoomScene';
 import ColonScene from './ColonScene';
+import SceneMeta from '../SceneMeta';
 
 type Phase = 'intro' | 'modeSelect' | 'preTest' | 'map' | 'station' | 'report';
 type Slug = StationMeta['slug'];
@@ -384,6 +385,16 @@ const BodyJourneyGame: React.FC = () => {
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background" dir="rtl">
       <div className="absolute inset-0">{scene}</div>
+
+      <SceneMeta
+        representation="schematic"
+        scaleNote={
+          station === 'stationD'
+            ? 'המעי והסיסים מוגדלים בהרבה — כדי לראות מבנה שבמציאות הוא במילימטרים.'
+            : 'האיברים מוצגים בהגדלה ובחיתוך, לא בגודלם או במקומם המדויק בגוף.'
+        }
+        keyboardHint="חצים לסיבוב, פלוס ומינוס לזום"
+      />
 
       {/* לוח המשימה הצף */}
       <motion.div

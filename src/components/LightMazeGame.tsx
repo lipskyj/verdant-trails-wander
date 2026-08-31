@@ -4,6 +4,7 @@ import DarkBoxScene from './DarkBoxScene';
 import TransparencyScene from './TransparencyScene';
 import FlashlightAnatomyScene from './FlashlightAnatomyScene';
 import ZoomBookScene from './ZoomBookScene';
+import SceneMeta from './SceneMeta';
 import { LAB_D, LAB_E, FLASHLIGHT_PARTS, FLASHLIGHT_CHAIN, ZOOM_LEVELS } from '@/content/labs';
 import GuideQuiz from './island/GuideQuiz';
 import IslandMap from './island/IslandMap';
@@ -430,6 +431,18 @@ const LightMazeGame: React.FC = () => {
           )}
         </div>
 
+        {/* שקיפות מדעית: מה מוגדל, מה בקנה מידה, ואיך שולטים במקלדת */}
+        {(room5Active || room4Active || room3Active || room2Active || sceneActive) && (
+          <SceneMeta
+            representation={room5Active ? 'schematic' : 'scaled'}
+            scaleNote={
+              room5Active
+                ? 'רמות הזום מוגדלות בהרבה סדרי גודל — הגדלים אינם יחסיים למציאות.'
+                : 'המכשירים והחומרים מוצגים בגודל שולחן מעבדה אמיתי.'
+            }
+            keyboardHint="חצים לסיבוב, פלוס ומינוס לזום"
+          />
+        )}
 
         {/* Tasks & questions live inside the 3D world as floating glass panels */}
         <div className="absolute z-20 top-[64px] bottom-0 left-0 w-full sm:w-[420px] lg:w-[500px] px-3 pb-4 pt-1 flex flex-col gap-3 overflow-y-auto hud-scroll">
