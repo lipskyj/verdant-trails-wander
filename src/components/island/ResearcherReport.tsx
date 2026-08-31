@@ -4,8 +4,8 @@ import { logEvent, summarizeEvents } from '@/lib/eventLog';
 import GuideQuiz from './GuideQuiz';
 
 /** Post gate: knowledge check + short reflection, framed as the researcher's report. */
-const ResearcherReport: React.FC = () => {
-  const [phase, setPhase] = useState<'quiz' | 'reflection' | 'done'>('quiz');
+const ResearcherReport: React.FC<{ withQuiz?: boolean }> = ({ withQuiz = true }) => {
+  const [phase, setPhase] = useState<'quiz' | 'reflection' | 'done'>(withQuiz ? 'quiz' : 'reflection');
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<string[]>(REFLECTION_PROMPTS.map(() => ''));
   const summary = useMemo(() => (phase === 'done' ? summarizeEvents() : null), [phase]);
