@@ -9,11 +9,25 @@ interface Props {
   logAs: IslandEventType;
   context?: string;
   ctaLabel?: string;
+  /** שם הדמות המלווה — ברירת המחדל היא שומר האי */
+  guideName?: string;
+  guideIcon?: string;
   onDone: (results: { id: string; choice: number; correct: boolean }[]) => void;
 }
 
 /** The guide character asks MCQs — used for the entry gate and the in-mystery pulse checks. */
-const GuideQuiz: React.FC<Props> = ({ items, heading, intro, logAs, context, ctaLabel = 'המשך', onDone }) => {
+const GuideQuiz: React.FC<Props> = ({
+  items,
+  heading,
+  intro,
+  logAs,
+  context,
+  ctaLabel = 'המשך',
+  guideName = ISLAND.guideName,
+  guideIcon = ISLAND.guideIcon,
+  onDone,
+}) => {
+
   const [index, setIndex] = useState(0);
   const [choice, setChoice] = useState<number | null>(null);
   const [shown, setShown] = useState(false);
