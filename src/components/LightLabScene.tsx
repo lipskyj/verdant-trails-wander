@@ -257,6 +257,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     };
 
 
+    let frame = 0;
     let mirrorCam: THREE.CubeCamera | null = null;
     let mirrorGlass: THREE.Mesh | null = null;
 
@@ -292,7 +293,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         new THREE.MeshPhysicalMaterial({ color: 0x8a6a3a, roughness: 0.35, metalness: 0.6, clearcoat: 0.7 })
       );
       // True mirror: live cube-camera reflection of the lab
-      const cubeRT = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+      const cubeRT = new THREE.WebGLCubeRenderTarget(budget.reflections ? 256 : 128, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
       const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
       const glass = new THREE.Mesh(
         new THREE.PlaneGeometry(0.6, 0.78),
@@ -608,11 +609,14 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         setReadout(best);
       }
 
-      if (mirrorCam && mirrorGlass) {
+      // Live cube-camera reflection is a tier-0/1 luxury; on weak GPUs the mirror
+      // keeps its static environment map and still reads as a reflector.
+      if (mirrorCam && mirrorGlass && budget.reflections && frame % 3 === 0) {
         mirrorGlass.visible = false;
         mirrorCam.update(renderer, scene);
         mirrorGlass.visible = true;
       }
+      frame++;
 
       renderer.render(scene, camera);
     };
