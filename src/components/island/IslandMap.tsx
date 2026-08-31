@@ -8,6 +8,7 @@ interface Props {
   onEnter: (slug: string) => void;
   tools: { flashlight: boolean; tube: boolean; lens: boolean; kit?: boolean; book?: boolean };
   onFinish?: () => void;
+  freeMode?: boolean;
 }
 
 /** מיקומי התעלומות על גוף האי (באחוזים מתוך מסגרת המפה) */
@@ -27,7 +28,7 @@ const TOOL_LABELS: { key: keyof Props['tools']; name: string }[] = [
   { key: 'book', name: 'ספר הזום' },
 ];
 
-const IslandMap: React.FC<Props> = ({ solved, onEnter, tools, onFinish }) => {
+const IslandMap: React.FC<Props> = ({ solved, onEnter, tools, onFinish, freeMode }) => {
   const nextMystery = MYSTERIES.find((m) => !solved.includes(m.slug));
   const allSolved = !nextMystery;
   const [hover, setHover] = React.useState<string | null>(null);
@@ -116,7 +117,7 @@ const IslandMap: React.FC<Props> = ({ solved, onEnter, tools, onFinish }) => {
               const pos = NODES[m.slug] ?? { x: 50, y: 50 };
               const done = solved.includes(m.slug);
               const isNext = m.slug === nextMystery?.slug;
-              const locked = !done && !isNext;
+              const locked = !freeMode && !done && !isNext;
               return (
                 <motion.button
                   key={m.slug}

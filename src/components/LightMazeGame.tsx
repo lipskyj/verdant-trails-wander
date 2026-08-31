@@ -8,6 +8,7 @@ import { LAB_D, LAB_E, FLASHLIGHT_PARTS, FLASHLIGHT_CHAIN, ZOOM_LEVELS } from '@
 import GuideQuiz from './island/GuideQuiz';
 import IslandMap from './island/IslandMap';
 import StoryIntro from './island/StoryIntro';
+import ModeSelect from './island/ModeSelect';
 import HintBox from './island/HintBox';
 import ResearcherReport from './island/ResearcherReport';
 import { ISLAND, MYSTERIES, PRE_TEST, PULSE_CHECKS } from '@/content/island';
@@ -46,6 +47,7 @@ type Item = SortingItem;
 type Choice = 'producer' | 'reflector';
 type GameState =
   | 'islandIntro'
+  | 'modeSelect'
   | 'preTest'
   | 'map'
   | 'intro'
@@ -69,6 +71,8 @@ type GameState =
 
 const LightMazeGame: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('islandIntro');
+  const [freeMode, setFreeMode] = useState(false);
+  const [withQuizzes, setWithQuizzes] = useState(true);
   const [solvedMysteries, setSolvedMysteries] = useState<string[]>([]);
   const [pulse, setPulse] = useState<string | null>(null);
   const [pulseDone, setPulseDone] = useState<string[]>([]);
@@ -147,7 +151,7 @@ const LightMazeGame: React.FC = () => {
 
   // ---- pulse-check helper: guide asks a question inside the mystery itself ----
   const askPulse = (key: string, next?: GameState) => {
-    if (pulseDone.includes(key)) {
+    if (!withQuizzes || pulseDone.includes(key)) {
       if (next) setGameState(next);
       return;
     }
@@ -1180,7 +1184,18 @@ const LightMazeGame: React.FC = () => {
         </div>
 
         {/* Overlays */}
-        {gameState === 'islandIntro' && <StoryIntro onDone={() => setGameState('preTest')} />}
+        {gameState === 'islandIntro' && <StoryIntro onDone={() => setGameState('modeSelect')} />}
+
+        {gameState === 'modeSelect' && (
+          <ModeSelect
+            onDone={({ freeMode: fm, withQuizzes: wq }) => {
+              setFreeMode(fm);
+              setWithQuizzes(wq);
+              logEvent('session_start', { freeMode: fm, withQuizzes: wq });
+              setGameState(wq ? 'preTest' : 'map');
+            }}
+          />
+        )}
 
         {gameState === 'preTest' && (
           <GuideQuiz
@@ -1206,10 +1221,11 @@ const LightMazeGame: React.FC = () => {
             tools={{ flashlight: hasFlashlight, tube: hasTube, lens: hasLens, kit: hasKit, book: hasBook }}
             onEnter={enterMystery}
             onFinish={() => setGameState('report')}
+            freeMode={freeMode}
           />
         )}
 
-        {gameState === 'report' && <ResearcherReport />}
+        {gameState === 'report' && <ResearcherReport withQuiz={withQuizzes} />}
 
         {pulse && PULSE_CHECKS[pulse] && (
           <GuideQuiz
