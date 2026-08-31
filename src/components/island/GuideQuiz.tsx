@@ -9,6 +9,12 @@ interface Props {
   logAs: IslandEventType;
   context?: string;
   ctaLabel?: string;
+  /**
+   * Show which option was the right one after answering.
+   * Must be false for the entry gate: a pre-test that teaches the answers is
+   * the first instructional event, not a baseline.
+   */
+  revealCorrect?: boolean;
   /** שם הדמות המלווה — ברירת המחדל היא שומר האי */
   guideName?: string;
   guideIcon?: string;
