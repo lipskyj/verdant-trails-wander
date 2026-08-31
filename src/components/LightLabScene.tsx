@@ -559,6 +559,28 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
     const aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0.35);
     const aim = new THREE.Vector3(0, 1.9, 0);
+    // keyboard aiming (WCAG 2.1.1): the torch can be steered without a pointer
+    const keyAim = { x: 0, y: 1.9, active: false };
+    const onSceneKey = (e: KeyboardEvent) => {
+      const step = 0.35;
+      let used = true;
+      if (e.key === 'ArrowLeft') keyAim.x = THREE.MathUtils.clamp(keyAim.x - step, -4.2, 4.2);
+      else if (e.key === 'ArrowRight') keyAim.x = THREE.MathUtils.clamp(keyAim.x + step, -4.2, 4.2);
+      else if (e.key === 'ArrowUp') keyAim.y = THREE.MathUtils.clamp(keyAim.y + step, 1.55, 3.2);
+      else if (e.key === 'ArrowDown') keyAim.y = THREE.MathUtils.clamp(keyAim.y - step, 1.55, 3.2);
+      else if (e.key === '[') orbit -= 0.15;
+      else if (e.key === ']') orbit += 0.15;
+      else if (e.key === '+' || e.key === '=') dist = THREE.MathUtils.clamp(dist - 0.6, 3.5, 14);
+      else if (e.key === '-') dist = THREE.MathUtils.clamp(dist + 0.6, 3.5, 14);
+      else used = false;
+      if (used) {
+        keyAim.active = true;
+        e.preventDefault();
+      }
+    };
+    mount.addEventListener('keydown', onSceneKey);
+    const onScenePointer = () => (keyAim.active = false);
+    el.addEventListener('pointermove', onScenePointer);
     const clock = new THREE.Clock();
     let raf = 0;
     let lastKey = '';
@@ -573,7 +595,8 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
       // Room lighting toggle (the "lights off" part of the experiment)
       const on = roomLightRef.current;
-      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.015, dt * 6);
+      // lights off must really reach zero — mystery A is built on total darkness
+      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0, dt * 6);
       ceilingSpot.intensity = THREE.MathUtils.lerp(ceilingSpot.intensity, on ? 60 : 0, dt * 6);
       // Drop the image-based light too, otherwise "lights off" still looks lit —
       // but by animating envMapIntensity (a uniform) instead of nulling
@@ -585,7 +608,9 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       // Aim the flashlight where the cursor points
       raycaster.setFromCamera(pointer, camera);
       const target = new THREE.Vector3();
-      if (raycaster.ray.intersectPlane(aimPlane, target)) {
+      if (keyAim.active) {
+        aim.lerp(new THREE.Vector3(keyAim.x, keyAim.y, 0.35), 0.25);
+      } else if (raycaster.ray.intersectPlane(aimPlane, target)) {
         target.y = THREE.MathUtils.clamp(target.y, 1.55, 3.2);
         target.x = THREE.MathUtils.clamp(target.x, -4.2, 4.2);
         aim.lerp(target, 0.18);
@@ -676,21 +701,11 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('pointerup', onClick);
       el.removeEventListener('wheel', onWheel);
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.geometry.dispose();
-          const mat = m.material as THREE.Material | THREE.Material[];
-          Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
-        }
-      });
+      el.removeEventListener('pointermove', onScenePointer);
+      mount.removeEventListener('keydown', onSceneKey);
       labelTextures.forEach((t) => t.dispose());
-      envRT.texture.dispose();
-      pmrem.dispose();
-      floorTex.dispose();
-      woodTex.dispose();
+      disposeScene(scene, renderer, [envRT, pmrem, floorTex, woodTex]);
       if (el.parentNode === mount) mount.removeChild(el);
-      renderer.dispose();
     };
   }, [objects]);
 
