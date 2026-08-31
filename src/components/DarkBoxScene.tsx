@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { fitText } from '@/lib/canvasText';
+import { tubeSight } from '@/sim/light';
+import { disposeScene } from '@/lib/sceneDispose';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
@@ -28,7 +31,7 @@ const makeLabel = (text: string, color = '#e8f0ff', accent = 'rgba(12,18,28,0.72
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.direction = 'rtl';
-  ctx.fillText(text, 256, 66, 470);
+  fitText(ctx, text, 256, 66, 470);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
@@ -311,9 +314,12 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
       eyeLabel.position.copy(eyePos).add(new THREE.Vector3(0, 0.52, 0));
       tubeLabel.position.set(tube.position.x + 0.6, tube.position.y + 0.5, tube.position.z);
 
-      const aligned = Math.abs(off) < 0.22;
-      const straight = Math.abs(bendAngle) < 0.12;
-      const isSeen = aligned && straight;
+      // The scientific verdict is decided by the MODEL inputs (offset + bent),
+      // never by bendAngle — that is a render-only tween, so grading on it made
+      // correctness depend on frame rate.
+      const sight = tubeSight({ offset: off, bent: bentRef.current });
+      const isSeen = sight.seen;
+      const straight = !bentRef.current;
 
       // ray: flame -> (eye | blocking point)
       candle.getWorldPosition(flameWorld);
@@ -366,21 +372,7 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
       window.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('wheel', onWheel);
-      woodTex.dispose();
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.geometry.dispose();
-          const mat = m.material as THREE.Material | THREE.Material[];
-          Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
-        }
-        const s = o as THREE.Sprite;
-        if ((s as any).isSprite) {
-          s.material.map?.dispose();
-          s.material.dispose();
-        }
-      });
-      renderer.dispose();
+      disposeScene(scene, renderer, [woodTex]);
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, []);

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { fitText } from '@/lib/canvasText';
 import { getTier, makeSceneRenderer } from '@/lib/renderTier';
 
 /** תווית עברית כספרייט קנבס — משותפת לכל סצנות מסע המזון. */
@@ -22,7 +23,7 @@ export function makeLabel(text: string, color = '#ffeef0', width = 1.7) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.direction = 'rtl';
-    ctx.fillText(t, 256, 66, 470);
+    fitText(ctx, t, 256, 66, 470);
   };
 
   draw(text, color);

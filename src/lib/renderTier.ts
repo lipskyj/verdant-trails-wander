@@ -29,7 +29,7 @@ const BUDGETS: Record<Tier, TierBudget> = {
     pixelRatio: 2,
     antialias: true,
     shadows: true,
-    shadowMapSize: 2048,
+    shadowMapSize: 1024,
     softShadows: true,
     transmission: true,
     reflections: true,

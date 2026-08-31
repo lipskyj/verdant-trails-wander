@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { fitText } from '@/lib/canvasText';
+import { disposeScene } from '@/lib/sceneDispose';
+import { transmittedPct } from '@/sim/light';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
@@ -29,7 +32,7 @@ const makeLabel = (text: string, color = '#e8f0ff') => {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.direction = 'rtl';
-  ctx.fillText(text, 256, 66, 470);
+  fitText(ctx, text, 256, 66, 470);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
@@ -49,7 +52,7 @@ const makeLabel = (text: string, color = '#e8f0ff') => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.direction = 'rtl';
-      ctx.fillText(t, 256, 66, 470);
+      fitText(ctx, t, 256, 66, 470);
       tex.needsUpdate = true;
     } };
 };
@@ -136,14 +139,16 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
 
     // beam before the sample (always visible when lamp is on)
     const beamMatA = new THREE.MeshBasicMaterial({ color: 0xffeec2, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false });
-    const beamA = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.55, 2.6, 24, 1, true), beamMatA);
+    // light travels in +X here, and radiusTop lands downstream after the rotation —
+    // so the narrow end belongs at the lamp. Beams spread, they do not focus.
+    const beamA = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.3, 2.6, 24, 1, true), beamMatA);
     beamA.rotation.z = -Math.PI / 2;
     beamA.position.set(-1.6, 2.55, 0);
     scene.add(beamA);
 
     // beam after the sample (opacity scales with transmission)
     const beamMatB = new THREE.MeshBasicMaterial({ color: 0xffeec2, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
-    const beamB = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.8, 2.9, 24, 1, true), beamMatB);
+    const beamB = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.55, 2.9, 24, 1, true), beamMatB);
     beamB.rotation.z = -Math.PI / 2;
     beamB.position.set(1.6, 2.55, 0);
     scene.add(beamB);
@@ -271,8 +276,11 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
 
       const trans = s.transmission;
       beamMatB.opacity = THREE.MathUtils.lerp(beamMatB.opacity, 0.2 * trans * on, dt * 8);
-      patchMat.opacity = THREE.MathUtils.lerp(patchMat.opacity, (0.15 + 0.75 * trans) * trans * on, dt * 8);
-      patch.scale.setScalar(THREE.MathUtils.lerp(patch.scale.x, 0.6 + trans * 0.5, dt * 8));
+      // brightness is LINEAR in transmission (it used to be squared, systematically
+      // under-showing partial transmitters), and the spot size is fixed: more light
+      // through a sample makes the patch brighter, not bigger.
+      patchMat.opacity = THREE.MathUtils.lerp(patchMat.opacity, 0.9 * trans * on, dt * 8);
+      patch.scale.setScalar(1);
 
       // sample look tracks its transmission
       sampleMat.color.set(s.color);
@@ -285,7 +293,7 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
         sampleLabel.redraw(s.sampleName);
       }
 
-      const pct = Math.round(trans * 100 * on);
+      const pct = transmittedPct(trans, s.lightOn);
       if (pct !== shownPct) {
         shownPct = pct;
         const c = pct > 70 ? '#bbf7d0' : pct > 15 ? '#fde68a' : '#fecaca';
@@ -311,20 +319,7 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
       window.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('wheel', onWheel);
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.geometry.dispose();
-          const mat = m.material as THREE.Material | THREE.Material[];
-          Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
-        }
-        const sp = o as THREE.Sprite;
-        if ((sp as any).isSprite) {
-          sp.material.map?.dispose();
-          sp.material.dispose();
-        }
-      });
-      renderer.dispose();
+      disposeScene(scene, renderer, []);
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, []);

@@ -9,6 +9,12 @@ interface Props {
   logAs: IslandEventType;
   context?: string;
   ctaLabel?: string;
+  /**
+   * Show which option was the right one after answering.
+   * Must be false for the entry gate: a pre-test that teaches the answers is
+   * the first instructional event, not a baseline.
+   */
+  revealCorrect?: boolean;
   /** שם הדמות המלווה — ברירת המחדל היא שומר האי */
   guideName?: string;
   guideIcon?: string;
@@ -23,6 +29,7 @@ const GuideQuiz: React.FC<Props> = ({
   logAs,
   context,
   ctaLabel = 'המשך',
+  revealCorrect = true,
   guideName = ISLAND.guideName,
   guideIcon = ISLAND.guideIcon,
   onDone,
@@ -65,7 +72,7 @@ const GuideQuiz: React.FC<Props> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/92 backdrop-blur p-4 md:p-6">
+    <div dir="rtl" className="absolute inset-0 z-40 flex items-center justify-center bg-background/92 backdrop-blur p-4 md:p-6">
       <div className="game-panel w-full max-w-xl p-6 md:p-7 flex flex-col gap-4 text-right">
         <div className="flex items-center gap-3">
           <span className="text-3xl">{guideIcon}</span>
@@ -87,22 +94,28 @@ const GuideQuiz: React.FC<Props> = ({
         <div className="flex flex-col gap-2">
           {q.options.map((opt, i) => {
             const picked = choice === i;
-            const reveal = shown && i === q.correct;
+            // never reveal the key on the entry gate — see revealCorrect
+            const reveal = shown && revealCorrect && i === q.correct;
+            const wrongPick = shown && picked && (!revealCorrect ? false : i !== q.correct);
+            // a glyph, not just a hue: colour alone is not an accessible encoding
+            const mark = reveal ? '✔ ' : wrongPick ? '✘ ' : '';
             return (
               <button
                 key={i}
                 disabled={shown}
-                onClick={() => setChoice(i)}
+                aria-pressed={picked}
                 className={`text-right text-xs md:text-sm p-2.5 rounded-lg border transition ${
                   reveal
                     ? 'bg-primary/20 border-primary text-primary font-bold'
                     : picked
-                      ? shown
+                      ? wrongPick
                         ? 'bg-destructive/15 border-destructive/50 text-destructive'
                         : 'bg-primary/20 border-primary text-primary font-bold'
                       : 'bg-muted border-border hover:bg-muted/70'
                 }`}
+                onClick={() => setChoice(i)}
               >
+                {mark}
                 {opt}
               </button>
             );
@@ -111,6 +124,7 @@ const GuideQuiz: React.FC<Props> = ({
 
         {shown && (
           <span
+            role="status"
             className={`text-xs px-3 py-2 rounded-lg font-bold border ${
               isCorrect
                 ? 'bg-primary/15 text-primary border-primary/30'
@@ -118,8 +132,13 @@ const GuideQuiz: React.FC<Props> = ({
             }`}
           >
             {isCorrect ? q.feedbackOk : q.feedbackNo}
+            {/* name the right answer in words, so the feedback is not colour-only */}
+            {revealCorrect && !isCorrect && (
+              <span className="block mt-1 font-normal">התשובה הנכונה: «{q.options[q.correct]}»</span>
+            )}
           </span>
         )}
+
 
         {!shown ? (
           <button

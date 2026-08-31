@@ -1,6 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { fitText } from '@/lib/canvasText';
 import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
+import { disposeScene } from '@/lib/sceneDispose';
+import {
+  SOURCE_CANDELA,
+  ROOM_LUX_ON,
+  ROOM_LUX_OFF,
+  luxAt,
+  inCone,
+  measure,
+  classifyFromReading,
+  formatLux,
+} from '@/sim/light';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export type LabObject = {
@@ -61,11 +73,16 @@ function makeConcreteTexture() {
 const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [roomLight, setRoomLight] = useState(true);
-  const [beamOn, setBeamOn] = useState(true);
-  const [readout, setReadout] = useState<{ name: string; lux: number; self: boolean } | null>(null);
+  // the torch starts OFF: mystery A asks "what still glows when everything is off?"
+  const [beamOn, setBeamOn] = useState(false);
+  const [readout, setReadout] = useState<{
+    name: string;
+    lux: number;
+    verdict: 'producer' | 'reflector' | 'unknown';
+  } | null>(null);
 
   const roomLightRef = useRef(true);
-  const beamRef = useRef(true);
+  const beamRef = useRef(false);
   const inspectRef = useRef(onInspect);
   roomLightRef.current = roomLight;
   beamRef.current = beamOn;
@@ -97,7 +114,17 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
     // Image-based lighting for realistic reflections
     const pmrem = new THREE.PMREMGenerator(renderer);
-    const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+    // RoomEnvironment(renderer) — without the argument r160 bakes the PMREM from a
+    // 5-intensity light instead of 900, i.e. 180× too dim (and would silently jump on upgrade).
+    const roomEnvScene = new RoomEnvironment(renderer);
+    const envRT = pmrem.fromScene(roomEnvScene, 0.04);
+    roomEnvScene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      m.geometry?.dispose();
+      const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
+      else mat?.dispose();
+    });
     scene.environment = envRT.texture;
 
     // --- ROOM ---
@@ -145,16 +172,18 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     // --- AMBIENT / ROOM LIGHTING ---
     const ambient = new THREE.AmbientLight(0xbcd2f0, 0.35);
     scene.add(ambient);
-    const ceiling = new THREE.RectAreaLight(0xfff3dd, 6, 8, 3);
-    ceiling.position.set(0, 6.5, 0.5);
-    ceiling.lookAt(0, 1.5, 0);
-    scene.add(ceiling);
+    // (A RectAreaLight used to sit here. RectAreaLightUniformsLib was never
+    // initialised, so it emitted nothing while forcing the LTC BRDF path into
+    // every material — removed.)
     const ceilingSpot = new THREE.SpotLight(0xfff1d6, 60, 20, 0.9, 0.6, 1.4);
     ceilingSpot.position.set(0, 7, 1.5);
     ceilingSpot.target.position.set(0, 1.5, 0);
     ceilingSpot.castShadow = budget.shadows;
     ceilingSpot.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     ceilingSpot.shadow.bias = -0.0004;
+    // the ceiling light and everything it shadows are static: render its map once
+    ceilingSpot.shadow.autoUpdate = false;
+    ceilingSpot.shadow.needsUpdate = true;
     scene.add(ceilingSpot, ceilingSpot.target);
 
     // --- FLASHLIGHT (the experiment tool) ---
@@ -229,7 +258,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#e8f5ff';
       ctx.direction = 'rtl';
-      ctx.fillText(text, 256, 66, 470);
+      fitText(ctx, text, 256, 66, 470);
       const tex = new THREE.CanvasTexture(c);
       tex.colorSpace = THREE.SRGBColorSpace;
       labelTextures.push(tex);
@@ -239,7 +268,8 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       return sp;
     };
 
-    const register = (group: THREE.Object3D, id: number, self: boolean, name: string) => {
+    /** @param candela luminous intensity the body PRODUCES itself (0 for reflectors) */
+    const register = (group: THREE.Object3D, id: number, candela: number, name: string) => {
       group.traverse((o) => {
         o.userData.id = id;
         if ((o as THREE.Mesh).isMesh) {
@@ -251,14 +281,12 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       label.position.set(0, 1.02, 0);
       label.userData.id = id;
       group.add(label);
-      group.userData = { id, self, name };
+      group.userData = { id, candela, self: candela > 0, name };
       targets.push(group);
       scene.add(group);
     };
 
 
-    let frame = 0;
-    let mirrorCam: THREE.CubeCamera | null = null;
     let mirrorGlass: THREE.Mesh | null = null;
 
     const slotX = (i: number) => -3 + i * 1.2;
@@ -282,7 +310,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       sunLight.position.y = 0.55;
       g.add(sun, stand, sunLight);
       g.position.set(slotX(findIndex(1)), y0, 0);
-      register(g, 1, true, 'שמש');
+      register(g, 1, SOURCE_CANDELA.sun, 'מודל השמש');
     }
 
     // 2 - MIRROR: real reflective glass in a frame
@@ -292,23 +320,21 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         new THREE.BoxGeometry(0.72, 0.9, 0.06),
         new THREE.MeshPhysicalMaterial({ color: 0x8a6a3a, roughness: 0.35, metalness: 0.6, clearcoat: 0.7 })
       );
-      // True mirror: live cube-camera reflection of the lab
-      const cubeRT = new THREE.WebGLCubeRenderTarget(budget.reflections ? 256 : 128, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
-      const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
+      // Mirror reflection uses the room environment probe already built above.
+      // A live CubeCamera here cost 6 extra renders/frame (plus a full PMREM
+      // convolution) for a visually near-identical result on a small mirror.
       const glass = new THREE.Mesh(
         new THREE.PlaneGeometry(0.6, 0.78),
         new THREE.MeshPhysicalMaterial({
           color: 0xf2f6ff,
           roughness: 0.03,
           metalness: 1,
-          envMap: cubeRT.texture,
+          envMap: envRT.texture,
           envMapIntensity: 1.6,
         })
       );
       glass.position.z = 0.035;
-      mirrorCam = cubeCam;
       mirrorGlass = glass;
-      g.add(cubeCam);
       const foot = new THREE.Mesh(
         new THREE.BoxGeometry(0.7, 0.05, 0.28),
         new THREE.MeshStandardMaterial({ color: 0x6b5228, roughness: 0.5 })
@@ -317,7 +343,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       g.add(frame, glass, foot);
       g.position.set(slotX(findIndex(2)), y0 + 0.47, -0.2);
       g.rotation.y = -0.25;
-      register(g, 2, false, 'מראה');
+      register(g, 2, 0, 'מראה');
     }
 
     // 3 - LIGHT BULB: glass envelope, filament, real emitted light
@@ -354,7 +380,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       bulbLight.position.y = 0.62;
       g.add(glass, socket, stand, filament, bulbLight);
       g.position.set(slotX(findIndex(3)), y0, 0.1);
-      register(g, 3, true, 'נורה חשמלית');
+      register(g, 3, SOURCE_CANDELA.bulb, 'נורה חשמלית');
     }
 
     // 4 - MOON: cratered dusty rock, no light of its own
@@ -380,7 +406,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       ring.position.y = 0.13;
       g.add(moon, ring);
       g.position.set(slotX(findIndex(4)), y0, -0.1);
-      register(g, 4, false, 'ירח');
+      register(g, 4, 0, 'מודל הירח');
     }
 
     // 5 - FIREFLY IN A GLASS JAR: bioluminescent, glows on its own
@@ -420,7 +446,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       g.add(jar, lid, bugGroup);
       g.position.set(slotX(findIndex(5)), y0, 0.15);
       g.userData.bug = bugGroup;
-      register(g, 5, true, 'גחלילית');
+      register(g, 5, SOURCE_CANDELA.firefly, 'גחלילית');
       g.userData.bug = bugGroup;
     }
 
@@ -464,7 +490,7 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       g.add(globe, axis, base);
       g.position.set(slotX(findIndex(6)), y0, -0.05);
       g.userData.globe = globe;
-      register(g, 6, false, 'כדור הארץ');
+      register(g, 6, 0, 'גלובוס כדור הארץ');
       g.userData.globe = globe;
     }
 
@@ -518,8 +544,44 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
 
+    // Materials whose IBL contribution is animated by the room-light switch.
+    const envMaterials: THREE.MeshStandardMaterial[] = [];
+    scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      const list = Array.isArray(m) ? m : m ? [m] : [];
+      list.forEach((mat) => {
+        const std = mat as THREE.MeshStandardMaterial;
+        if (!('envMapIntensity' in std)) return;
+        std.userData.baseEnv = std.envMapIntensity ?? 1;
+        envMaterials.push(std);
+      });
+    });
+    let envTarget = 1;
+
     const aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0.35);
     const aim = new THREE.Vector3(0, 1.9, 0);
+    // keyboard aiming (WCAG 2.1.1): the torch can be steered without a pointer
+    const keyAim = { x: 0, y: 1.9, active: false };
+    const onSceneKey = (e: KeyboardEvent) => {
+      const step = 0.35;
+      let used = true;
+      if (e.key === 'ArrowLeft') keyAim.x = THREE.MathUtils.clamp(keyAim.x - step, -4.2, 4.2);
+      else if (e.key === 'ArrowRight') keyAim.x = THREE.MathUtils.clamp(keyAim.x + step, -4.2, 4.2);
+      else if (e.key === 'ArrowUp') keyAim.y = THREE.MathUtils.clamp(keyAim.y + step, 1.55, 3.2);
+      else if (e.key === 'ArrowDown') keyAim.y = THREE.MathUtils.clamp(keyAim.y - step, 1.55, 3.2);
+      else if (e.key === '[') orbit -= 0.15;
+      else if (e.key === ']') orbit += 0.15;
+      else if (e.key === '+' || e.key === '=') dist = THREE.MathUtils.clamp(dist - 0.6, 3.5, 14);
+      else if (e.key === '-') dist = THREE.MathUtils.clamp(dist + 0.6, 3.5, 14);
+      else used = false;
+      if (used) {
+        keyAim.active = true;
+        e.preventDefault();
+      }
+    };
+    mount.addEventListener('keydown', onSceneKey);
+    const onScenePointer = () => (keyAim.active = false);
+    el.addEventListener('pointermove', onScenePointer);
     const clock = new THREE.Clock();
     let raf = 0;
     let lastKey = '';
@@ -534,18 +596,22 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
 
       // Room lighting toggle (the "lights off" part of the experiment)
       const on = roomLightRef.current;
-      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.015, dt * 6);
-      ceiling.intensity = THREE.MathUtils.lerp(ceiling.intensity, on ? 6 : 0, dt * 6);
+      // lights off must really reach zero — mystery A is built on total darkness
+      ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0, dt * 6);
       ceilingSpot.intensity = THREE.MathUtils.lerp(ceilingSpot.intensity, on ? 60 : 0, dt * 6);
-      // drop the image-based light too, otherwise "lights off" still looks lit
-      const wantEnv = on ? envRT.texture : null;
-      if (scene.environment !== wantEnv) scene.environment = wantEnv;
+      // Drop the image-based light too, otherwise "lights off" still looks lit —
+      // but by animating envMapIntensity (a uniform) instead of nulling
+      // scene.environment (a shader define, which recompiles every material).
+      envTarget = THREE.MathUtils.lerp(envTarget, on ? 1 : 0, dt * 6);
+      envMaterials.forEach((m) => (m.envMapIntensity = m.userData.baseEnv * envTarget));
 
 
       // Aim the flashlight where the cursor points
       raycaster.setFromCamera(pointer, camera);
       const target = new THREE.Vector3();
-      if (raycaster.ray.intersectPlane(aimPlane, target)) {
+      if (keyAim.active) {
+        aim.lerp(new THREE.Vector3(keyAim.x, keyAim.y, 0.35), 0.25);
+      } else if (raycaster.ray.intersectPlane(aimPlane, target)) {
         target.y = THREE.MathUtils.clamp(target.y, 1.55, 3.2);
         target.x = THREE.MathUtils.clamp(target.x, -4.2, 4.2);
         aim.lerp(target, 0.18);
@@ -577,7 +643,8 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       }
 
       // Per-object animation + light meter
-      let best: { name: string; lux: number; self: boolean } | null = null;
+      let best: { name: string; lux: number; verdict: 'producer' | 'reflector' | 'unknown' } | null = null;
+      const beamAxis = new THREE.Vector3().subVectors(aim, holdPos).normalize();
       targets.forEach((g) => {
         const bug = g.userData.bug as THREE.Group | undefined;
         if (bug) {
@@ -589,34 +656,32 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         const globe = g.userData.globe as THREE.Mesh | undefined;
         if (globe) globe.rotation.y += dt * 0.25;
 
-        // measured illumination = self-emission + flashlight contribution
+        // --- real photometry (see src/sim/light.ts): E = I·cosθ / d²
         const wp = new THREE.Vector3();
         g.getWorldPosition(wp);
         wp.y += 0.4;
         const toObj = new THREE.Vector3().subVectors(wp, holdPos);
         const d = toObj.length();
-        const cos = toObj.normalize().dot(new THREE.Vector3().subVectors(aim, holdPos).normalize());
-        const inCone = cos > Math.cos(flash.angle);
-        const beamLux = lit && inCone ? Math.max(0, (1 - d / 12)) * 900 : 0;
-        const selfLux = g.userData.self ? 420 : 0;
-        const roomLux = roomLightRef.current ? 180 : 8;
-        const lux = Math.round(beamLux + selfLux + roomLux);
-        if (inCone && (!best || lux > best.lux)) best = { name: g.userData.name, lux, self: !!g.userData.self };
+        const dirToObj = toObj.clone().normalize();
+        const insideCone = inCone(dirToObj.dot(beamAxis), flash.angle);
+        // Lambert's law needs the angle to the SURFACE NORMAL: approximate the
+        // lit face normal as the direction from the body back towards the torch.
+        const faceNormal = new THREE.Vector3().subVectors(wp, new THREE.Vector3(0, wp.y, 0)).normalize();
+        if (faceNormal.lengthSq() < 0.001) faceNormal.set(0, 0, 1);
+        const cosIncidence = Math.max(0.15, -dirToObj.dot(faceNormal));
+        const beamLux = lit && insideCone ? luxAt(SOURCE_CANDELA.torch, d, cosIncidence) : 0;
+        // a producer is measured at its own surface (~0.35 m from the sensor head)
+        const selfLux = g.userData.candela ? luxAt(g.userData.candela as number, 1) : 0;
+        const roomLux = roomLightRef.current ? ROOM_LUX_ON : ROOM_LUX_OFF;
+        const reading = measure(selfLux, beamLux, roomLux);
+        if (insideCone && (!best || reading.total > best.lux))
+          best = { name: g.userData.name, lux: reading.total, verdict: classifyFromReading(reading) };
       });
-      const key = best ? `${best.name}|${Math.round(best.lux / 25)}` : 'none';
+      const key = best ? `${best.name}|${formatLux(best.lux)}|${best.verdict}` : 'none';
       if (key !== lastKey) {
         lastKey = key;
         setReadout(best);
       }
-
-      // Live cube-camera reflection is a tier-0/1 luxury; on weak GPUs the mirror
-      // keeps its static environment map and still reads as a reflector.
-      if (mirrorCam && mirrorGlass && budget.reflections && frame % 3 === 0) {
-        mirrorGlass.visible = false;
-        mirrorCam.update(renderer, scene);
-        mirrorGlass.visible = true;
-      }
-      frame++;
 
       renderer.render(scene, camera);
     };
@@ -637,26 +702,22 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('pointerup', onClick);
       el.removeEventListener('wheel', onWheel);
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.geometry.dispose();
-          const mat = m.material as THREE.Material | THREE.Material[];
-          Array.isArray(mat) ? mat.forEach((x) => x.dispose()) : mat.dispose();
-        }
-      });
+      el.removeEventListener('pointermove', onScenePointer);
+      mount.removeEventListener('keydown', onSceneKey);
       labelTextures.forEach((t) => t.dispose());
-      envRT.texture.dispose();
-      pmrem.dispose();
-      floorTex.dispose();
-      woodTex.dispose();
+      disposeScene(scene, renderer, [envRT, pmrem, floorTex, woodTex]);
       if (el.parentNode === mount) mount.removeChild(el);
-      renderer.dispose();
     };
   }, [objects]);
 
   return (
-    <div ref={mountRef} className="relative w-full h-full bg-background cursor-crosshair">
+    <div
+      ref={mountRef}
+      tabIndex={0}
+      role="application"
+      aria-label="מעבדת אור תלת־ממדית: חצים מכוונים את הפנס, [ ו־] מסובבים את המעבדה, + ו־- לזום"
+      className="relative w-full h-full bg-background cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
       {/* Lab controls: explicit on/off switches */}
       <div className="absolute bottom-14 right-3 flex flex-col gap-2 items-end">
         <button
@@ -700,17 +761,31 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       </div>
 
 
-      {/* Light meter readout */}
-      <div className="absolute top-[72px] right-3 game-panel px-3 py-2 text-xs min-w-[190px]">
+      {/* Keyboard-only path to every lab object: same handler as clicking it. */}
+      <div className="sr-only">
+        <h3>בדיקת גופים במעבדה</h3>
+        {objects.map((o) => (
+          <button key={o.id} onClick={() => onInspect?.(o.id)}>
+            בדקו את {o.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Light meter readout — the number comes from the physics model, the verdict from the measurement */}
+      <div className="absolute top-[72px] right-3 game-panel px-3 py-2 text-xs min-w-[200px]" aria-live="polite">
         <div className="font-bold text-primary mb-1">מד עוצמת אור (לוקס)</div>
         {readout ? (
           <>
             <div className="text-foreground">
               גוף נמדד: <strong>{readout.name}</strong>
             </div>
-            <div className="text-accent font-mono text-base">{readout.lux} lx</div>
+            <div className="text-accent font-mono text-base">{formatLux(readout.lux)} lx</div>
             <div className="text-muted-foreground mt-1">
-              {readout.self ? 'קורא אור גם כשהפנס והחדר כבויים → מפיק אור' : 'קורא אור רק כשמאירים עליו → מחזיר אור'}
+              {readout.verdict === 'unknown'
+                ? 'יש אור חיצוני בחדר — כבו את אור החדר ואת הפנס כדי לדעת אם הגוף מפיק אור בעצמו.'
+                : readout.verdict === 'producer'
+                  ? 'המדידה גדולה מאפס גם בחשכה מוחלטת → מפיק אור'
+                  : 'המדידה אפס בחשכה מוחלטת → מחזיר אור בלבד'}
             </div>
           </>
         ) : (
@@ -718,8 +793,14 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         )}
       </div>
 
+      {/* Scale honesty: this is a bench of models, not astronomy. */}
+      <div className="absolute top-3 left-3 game-panel px-3 py-1.5 text-[10px] text-muted-foreground max-w-[220px] leading-relaxed">
+        ⚖️ הגופים על השולחן הם <strong>מודלים להמחשה — לא בקנה מידה</strong>. בפועל השמש גדולה מכדור הארץ
+        פי ~109 ומהירח פי ~400.
+      </div>
+
       <div className="absolute bottom-3 right-3 game-panel px-3 py-1 text-xs text-muted-foreground">
-        הזזת עכבר - כיוון הפנס • גרירה - סיבוב המעבדה • גלגלת - זום • לחיצה על גוף - בדיקה • L - אור החדר • F - פנס
+        עכבר או ← ↑ ↓ → - כיוון הפנס • גרירה או [ ] - סיבוב • גלגלת או + - - זום • לחיצה על גוף - בדיקה • L - אור החדר • F - פנס
       </div>
 
     </div>
