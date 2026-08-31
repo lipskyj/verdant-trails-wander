@@ -8,7 +8,7 @@ import {
   STATIONS,
   type StationMeta,
 } from '@/content/body';
-import { logEvent } from '@/lib/eventLog';
+import { logEvent, setPackId } from '@/lib/eventLog';
 import GuideQuiz from '../island/GuideQuiz';
 import HintBox from '../island/HintBox';
 import BodyStoryIntro from './BodyStoryIntro';
@@ -73,6 +73,7 @@ const BodyJourneyGame: React.FC = () => {
 
   // --- לולאת סימולציה קצרה לכל התחנות שמודדות זמן
   const raf = useRef<number>();
+  const tries = useRef(0);
   useEffect(() => {
     let last = performance.now();
     const tick = (now: number) => {
