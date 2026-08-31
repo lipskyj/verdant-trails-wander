@@ -211,26 +211,34 @@ const ZoomBookScene: React.FC<Props> = ({ level, onZoomIn, onZoomOut }) => {
       const rough = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 2), solid(0xb0a48f, 1));
       rough.position.set(2, -0.6, 0);
       const rayMat = new THREE.MeshBasicMaterial({ color: 0xffe9b0, transparent: true, opacity: 0.6 });
-      // ordered reflection (left)
+      // The reflecting faces sit at y = -0.5 (top of a 0.2-tall slab centred at -0.6).
+      const surfaceY = -0.5;
+      /** a ray drawn from point A to point B, so incidence is always visible */
+      const rayFromTo = (ax: number, ay: number, bx: number, by: number) => {
+        const len = Math.hypot(bx - ax, by - ay);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(len, 0.06, 0.06), rayMat);
+        m.position.set((ax + bx) / 2, (ay + by) / 2, 0);
+        m.rotation.z = Math.atan2(by - ay, bx - ax);
+        return m;
+      };
+      // ordered (specular) reflection: incident and reflected rays MEET on the mirror
       for (let i = 0; i < 3; i++) {
-        const inR = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.06, 0.06), rayMat);
-        inR.position.set(-3.1 + i * 0.35, 0.6, 0);
-        inR.rotation.z = -0.7;
-        const outR = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.06, 0.06), rayMat);
-        outR.position.set(-1.0 + i * 0.35, 0.6, 0);
-        outR.rotation.z = 0.7;
-        g.add(inR, outR);
+        const hitX = -2.7 + i * 0.7;
+        g.add(rayFromTo(hitX - 1.3, surfaceY + 1.3, hitX, surfaceY));
+        g.add(rayFromTo(hitX, surfaceY, hitX + 1.3, surfaceY + 1.3));
       }
-      // scattered reflection (right)
+      // diffuse reflection: ONE incoming ray strikes the rough surface, and the
+      // scattered rays all leave from that same point of incidence — a rough
+      // surface scatters light, it does not emit it.
+      const hitR = 2;
+      g.add(rayFromTo(hitR - 1.5, surfaceY + 1.5, hitR, surfaceY));
       for (let i = 0; i < 5; i++) {
-        const outR = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.06, 0.06), rayMat);
-        outR.position.set(2 + Math.cos(0.5 + i * 0.45) * 0.9, -0.4 + Math.sin(0.5 + i * 0.45) * 0.9, 0);
-        outR.rotation.z = 0.5 + i * 0.45;
-        g.add(outR);
+        const a = 0.45 + i * 0.55;
+        g.add(rayFromTo(hitR, surfaceY, hitR + Math.cos(a) * 1.5, surfaceY + Math.sin(a) * 1.5));
       }
       const l1 = makeLabel('משטח חלק → כמו מראה', '#bae6fd', 2.4);
       l1.position.set(-2, 2.1, 0.6);
-      const l2 = makeLabel('משטח מחוספס → אור מפוזר', '#fde68a', 2.4);
+      const l2 = makeLabel('משטח מחוספס → מחזיר אור מפוזר (לא מפיק!)', '#fde68a', 2.4);
       l2.position.set(2.1, 2.1, 0.6);
       g.add(smooth, rough, l1, l2);
       return addHotspot(g, 0, -1.7, 'זום לתוך הקרן');

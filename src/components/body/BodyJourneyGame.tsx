@@ -106,7 +106,7 @@ const BodyJourneyGame: React.FC = () => {
     setChewTick((c) => c + 1);
     const gain = (tooth === 'molar' ? 0.16 : tooth === 'canine' ? 0.1 : tooth === 'incisor' ? 0.07 : 0.02) + (saliva ? 0.06 : 0);
     setBreakdown((b) => Math.min(1, b + gain));
-    logEvent('mystery_attempt', { unit: 'digestive', station, tooth, saliva });
+    logEvent('mystery_attempt', { mystery: station, attempt: ++tries.current, correct: true, detail: { unit: 'digestive', tooth, saliva } });
   };
 
   const enter = (slug: Slug) => {
@@ -130,7 +130,7 @@ const BodyJourneyGame: React.FC = () => {
   const wrong = (msg: string) => {
     setAttempts((a) => a + 1);
     setFeedback({ text: msg, ok: false });
-    logEvent('mystery_attempt', { unit: 'digestive', station, correct: false });
+    logEvent('mystery_attempt', { mystery: station, attempt: ++tries.current, correct: false, detail: { unit: 'digestive' } });
   };
 
   // ---------- שכבות המסך ----------
