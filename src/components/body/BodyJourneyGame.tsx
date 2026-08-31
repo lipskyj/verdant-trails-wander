@@ -389,7 +389,7 @@ const BodyJourneyGame: React.FC = () => {
       <SceneMeta
         representation="schematic"
         scaleNote={
-          station === 'stationD'
+          station === 'smallIntestine'
             ? 'המעי והסיסים מוגדלים בהרבה — כדי לראות מבנה שבמציאות הוא במילימטרים.'
             : 'האיברים מוצגים בהגדלה ובחיתוך, לא בגודלם או במקומם המדויק בגוף.'
         }
