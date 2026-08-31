@@ -73,11 +73,11 @@ type GameState =
 const LightMazeGame: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('islandIntro');
   // attempt counters per mystery — keeps every mystery_attempt payload identical
-  const attemptsA = useRef(0);
-  const attemptsB = useRef(0);
-  const attemptsC = useRef(0);
-  const attemptsD = useRef(0);
-  const attemptsE = useRef(0);
+  const triesA = useRef(0);
+  const triesB = useRef(0);
+  const triesC = useRef(0);
+  const triesD = useRef(0);
+  const triesE = useRef(0);
   const [freeMode, setFreeMode] = useState(false);
   const [withQuizzes, setWithQuizzes] = useState(true);
   const [solvedMysteries, setSolvedMysteries] = useState<string[]>([]);
@@ -209,7 +209,7 @@ const LightMazeGame: React.FC = () => {
     const wrong = ROOM_3_SAMPLES.filter((s) => r3Choices[s.id] !== s.klass).map((s) => s.id);
     setR3Wrong(wrong);
     setAttemptsC((a) => a + 1);
-    logEvent('mystery_attempt', { mystery: 'mysteryC', attempt: ++attemptsC.current, correct: wrong.length === 0, detail: { wrong: wrong.length } });
+    logEvent('mystery_attempt', { mystery: 'mysteryC', attempt: ++triesC.current, correct: wrong.length === 0, detail: { wrong: wrong.length } });
     if (wrong.length === 0) {
       setHasLens(true);
       setRoom3Feedback({ text: 'מיון מושלם! פיצחתם את סוד השקיפות 🌟', ok: true });
@@ -256,7 +256,7 @@ const LightMazeGame: React.FC = () => {
     setSolvedIds((p) => [...p, ...correct]);
     setWrongIds(wrong);
     setAttemptsA((a) => a + 1);
-    logEvent('mystery_attempt', { mystery: 'mysteryA', attempt: ++attemptsA.current, correct: wrong.length === 0, detail: { correct: correct.length, wrong: wrong.length } });
+    logEvent('mystery_attempt', { mystery: 'mysteryA', attempt: ++triesA.current, correct: wrong.length === 0, detail: { correct: correct.length, wrong: wrong.length } });
     setChoices((p) => {
       const next = { ...p };
       wrong.forEach((id) => delete next[id]);
@@ -286,7 +286,7 @@ const LightMazeGame: React.FC = () => {
     const ok = dChain.length === FLASHLIGHT_CHAIN.length && dChain.every((id, i) => id === FLASHLIGHT_CHAIN[i]);
     setDChainOk(ok);
     setDAttempts((a) => a + 1);
-    logEvent('mystery_attempt', { mystery: 'mysteryD', attempt: ++attemptsD.current, correct: ok, detail: { stage: 'chain' } });
+    logEvent('mystery_attempt', { mystery: 'mysteryD', attempt: ++triesD.current, correct: ok, detail: { stage: 'chain' } });
     setDFeedback(
       ok
         ? { text: 'שרשרת נכונה! מאנרגיה ועד לקרן שיוצאת. עכשיו שלב היישום — שחקו עם הסוללה.', ok: true }
@@ -298,7 +298,7 @@ const LightMazeGame: React.FC = () => {
     if (dFailChoice === null) return;
     const ok = dFailChoice === LAB_D.failExplain.correct;
     setDAttempts((a) => a + 1);
-    logEvent('mystery_attempt', { mystery: 'mysteryD', attempt: ++attemptsD.current, correct: ok, detail: { stage: 'apply' } });
+    logEvent('mystery_attempt', { mystery: 'mysteryD', attempt: ++triesD.current, correct: ok, detail: { stage: 'apply' } });
     setDFeedback({ text: ok ? LAB_D.failExplain.feedbackOk : LAB_D.failExplain.feedbackNo, ok });
     if (ok) {
       setHasKit(true);
@@ -309,7 +309,7 @@ const LightMazeGame: React.FC = () => {
   const submitZoom = () => {
     if (zAnswer === null) return;
     const ok = zAnswer === LAB_E.finalQuestion.correct;
-    logEvent('mystery_attempt', { mystery: 'mysteryE', attempt: ++attemptsE.current, correct: ok });
+    logEvent('mystery_attempt', { mystery: 'mysteryE', attempt: ++triesE.current, correct: ok });
     setZFeedback({ text: ok ? LAB_E.finalQuestion.feedbackOk : LAB_E.finalQuestion.feedbackNo, ok });
     if (ok) {
       setHasBook(true);
@@ -332,7 +332,7 @@ const LightMazeGame: React.FC = () => {
 
   const submitConclusion = () => {
     if (conclusion === null) return;
-    logEvent('mystery_attempt', { mystery: 'mysteryB', attempt: ++attemptsB.current, correct: conclusion === 1, detail: { choice: conclusion } });
+    logEvent('mystery_attempt', { mystery: 'mysteryB', attempt: ++triesB.current, correct: conclusion === 1, detail: { choice: conclusion } });
     if (conclusion === 1) {
       setHasTube(true);
       setRoom2Feedback({ text: 'מדויק! האור מתקדם בקו ישר בלבד.', ok: true });
@@ -1418,7 +1418,7 @@ const LightMazeGame: React.FC = () => {
                     onClick={() => {
                       setD4Predict(i);
                       setDFeedback({ text: opt.why, ok: opt.ok });
-                      logEvent('mystery_attempt', { mystery: 'mysteryD', attempt: ++attemptsD.current, correct: opt.ok, detail: { stage: 'predict' } });
+                      logEvent('mystery_attempt', { mystery: 'mysteryD', attempt: ++triesD.current, correct: opt.ok, detail: { stage: 'predict' } });
                       setGameState('room4');
                     }}
                     className="bg-muted hover:bg-muted/70 border border-border p-3 rounded-xl text-xs font-bold"
