@@ -285,8 +285,6 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     };
 
 
-    let frame = 0;
-    let mirrorCam: THREE.CubeCamera | null = null;
     let mirrorGlass: THREE.Mesh | null = null;
 
     const slotX = (i: number) => -3 + i * 1.2;
@@ -320,23 +318,21 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         new THREE.BoxGeometry(0.72, 0.9, 0.06),
         new THREE.MeshPhysicalMaterial({ color: 0x8a6a3a, roughness: 0.35, metalness: 0.6, clearcoat: 0.7 })
       );
-      // True mirror: live cube-camera reflection of the lab
-      const cubeRT = new THREE.WebGLCubeRenderTarget(budget.reflections ? 256 : 128, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
-      const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
+      // Mirror reflection uses the room environment probe already built above.
+      // A live CubeCamera here cost 6 extra renders/frame (plus a full PMREM
+      // convolution) for a visually near-identical result on a small mirror.
       const glass = new THREE.Mesh(
         new THREE.PlaneGeometry(0.6, 0.78),
         new THREE.MeshPhysicalMaterial({
           color: 0xf2f6ff,
           roughness: 0.03,
           metalness: 1,
-          envMap: cubeRT.texture,
+          envMap: envRT.texture,
           envMapIntensity: 1.6,
         })
       );
       glass.position.z = 0.035;
-      mirrorCam = cubeCam;
       mirrorGlass = glass;
-      g.add(cubeCam);
       const foot = new THREE.Mesh(
         new THREE.BoxGeometry(0.7, 0.05, 0.28),
         new THREE.MeshStandardMaterial({ color: 0x6b5228, roughness: 0.5 })
@@ -564,9 +560,11 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       const on = roomLightRef.current;
       ambient.intensity = THREE.MathUtils.lerp(ambient.intensity, on ? 0.35 : 0.015, dt * 6);
       ceilingSpot.intensity = THREE.MathUtils.lerp(ceilingSpot.intensity, on ? 60 : 0, dt * 6);
-      // drop the image-based light too, otherwise "lights off" still looks lit
-      const wantEnv = on ? envRT.texture : null;
-      if (scene.environment !== wantEnv) scene.environment = wantEnv;
+      // Drop the image-based light too, otherwise "lights off" still looks lit —
+      // but by animating envMapIntensity (a uniform) instead of nulling
+      // scene.environment (a shader define, which recompiles every material).
+      envTarget = THREE.MathUtils.lerp(envTarget, on ? 1 : 0, dt * 6);
+      envMaterials.forEach((m) => (m.envMapIntensity = m.userData.baseEnv * envTarget));
 
 
       // Aim the flashlight where the cursor points
@@ -635,15 +633,6 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         lastKey = key;
         setReadout(best);
       }
-
-      // Live cube-camera reflection is a tier-0/1 luxury; on weak GPUs the mirror
-      // keeps its static environment map and still reads as a reflector.
-      if (mirrorCam && mirrorGlass && budget.reflections && frame % 3 === 0) {
-        mirrorGlass.visible = false;
-        mirrorCam.update(renderer, scene);
-        mirrorGlass.visible = true;
-      }
-      frame++;
 
       renderer.render(scene, camera);
     };
