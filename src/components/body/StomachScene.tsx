@@ -171,7 +171,7 @@ const StomachScene: React.FC<Props> = ({ churn, acid, breakdown, running, foodNa
       // ערבול המזון
       chunks.forEach((c, i) => {
         const speed = 0.4 + churnAmp * 2.6;
-        const a = s.seed(i, t, speed);
+        const a = c.seed + t * speed;
         c.mesh.position.set(
           Math.cos(a) * c.radius * (1 + churnAmp * 0.4),
           -0.9 + Math.sin(a * 1.7 + i) * (0.5 + churnAmp * 0.7),
@@ -220,13 +220,6 @@ const StomachScene: React.FC<Props> = ({ churn, acid, breakdown, running, foodNa
 
       renderer.render(scene, camera);
     };
-
-    // עזר לפיזור החתיכות
-    (state.current as any).seed = (i: number, t: number, speed: number) => (i / 22) * Math.PI * 2 + t * speed;
-    Object.defineProperty(state.current, 'seed', {
-      value: (i: number, t: number, speed: number) => (i / 22) * Math.PI * 2 + t * speed,
-      writable: true,
-    });
 
     animate();
 
