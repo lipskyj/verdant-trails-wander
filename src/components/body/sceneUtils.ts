@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getTier, makeSceneRenderer } from '@/lib/renderTier';
 
 /** תווית עברית כספרייט קנבס — משותפת לכל סצנות מסע המזון. */
 export function makeLabel(text: string, color = '#ffeef0', width = 1.7) {
@@ -44,25 +45,17 @@ export function makeLabel(text: string, color = '#ffeef0', width = 1.7) {
 
 /** יוצר renderer עם אותה הגדרת PBR/טון־מאפינג בכל התחנות. */
 export function makeRenderer(mount: HTMLElement) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(mount.clientWidth, mount.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  mount.appendChild(renderer.domElement);
-  return renderer;
+  return makeSceneRenderer(mount, { exposure: 1.05 });
 }
 
 /** תאורה אורגנית חמה — רקמות, לא ניאון. */
 export function addTissueLights(scene: THREE.Scene) {
   scene.add(new THREE.HemisphereLight(0xffc9c0, 0x1a0d12, 0.75));
+  const budget = getTier();
   const key = new THREE.DirectionalLight(0xfff1e6, 1.15);
   key.position.set(3, 7, 6);
-  key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
+  key.castShadow = budget.shadows;
+  key.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
   scene.add(key);
   const rim = new THREE.DirectionalLight(0xff9a8a, 0.5);
   rim.position.set(-6, 3, -4);

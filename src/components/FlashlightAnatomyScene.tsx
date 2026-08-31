@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { makeSceneRenderer, getTier, prefersReducedMotion } from '@/lib/renderTier';
 
 type Props = {
   /** 0..1 — כמה המערכת מפורקת (מחוון הפירוק) */
@@ -71,15 +72,8 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
     scene.fog = new THREE.Fog(0x0a0e16, 12, 30);
     const camera = new THREE.PerspectiveCamera(44, mount.clientWidth / mount.clientHeight, 0.05, 120);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    mount.appendChild(renderer.domElement);
+    const renderer = makeSceneRenderer(mount, { exposure: 1.05 });
+    const budget = getTier();
 
     scene.add(new THREE.HemisphereLight(0x93b4ff, 0x14121a, 0.65));
     const key = new THREE.DirectionalLight(0xffffff, 1.15);
