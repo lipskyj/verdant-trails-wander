@@ -79,8 +79,8 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
     scene.add(new THREE.HemisphereLight(0x8fb2ff, 0x121018, 0.6));
     const key = new THREE.DirectionalLight(0xffffff, 1.0);
     key.position.set(2, 7, 6);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.castShadow = budget.shadows;
+    key.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     scene.add(key);
     const rim = new THREE.DirectionalLight(0x8ab4ff, 0.45);
     rim.position.set(-6, 3, -4);
@@ -122,8 +122,8 @@ const TransparencyScene: React.FC<Props> = ({ transmission, sampleName, color, l
 
     const spot = new THREE.SpotLight(0xfff3d6, 55, 12, 0.34, 0.45, 1.4);
     spot.position.set(-2.8, 2.55, 0);
-    spot.castShadow = true;
-    spot.shadow.mapSize.set(1024, 1024);
+    spot.castShadow = budget.shadows;
+    spot.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     scene.add(spot);
     const spotTarget = new THREE.Object3D();
     spotTarget.position.set(3.2, 2.55, 0);

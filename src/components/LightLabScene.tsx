@@ -152,15 +152,15 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
     const ceilingSpot = new THREE.SpotLight(0xfff1d6, 60, 20, 0.9, 0.6, 1.4);
     ceilingSpot.position.set(0, 7, 1.5);
     ceilingSpot.target.position.set(0, 1.5, 0);
-    ceilingSpot.castShadow = true;
-    ceilingSpot.shadow.mapSize.set(2048, 2048);
+    ceilingSpot.castShadow = budget.shadows;
+    ceilingSpot.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     ceilingSpot.shadow.bias = -0.0004;
     scene.add(ceilingSpot, ceilingSpot.target);
 
     // --- FLASHLIGHT (the experiment tool) ---
     const flash = new THREE.SpotLight(0xfff6e0, 240, 22, 0.28, 0.45, 1.6);
-    flash.castShadow = true;
-    flash.shadow.mapSize.set(2048, 2048);
+    flash.castShadow = budget.shadows;
+    flash.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     flash.shadow.bias = -0.0005;
     const flashTarget = new THREE.Object3D();
     scene.add(flash, flashTarget);

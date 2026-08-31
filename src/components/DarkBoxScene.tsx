@@ -67,8 +67,8 @@ const DarkBoxScene: React.FC<Props> = ({ bent, offset, onSeen }) => {
     scene.add(new THREE.HemisphereLight(0x8fb2ff, 0x1a1206, 0.5));
     const key = new THREE.DirectionalLight(0xffffff, 1.15);
     key.position.set(4, 7, 5);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.castShadow = budget.shadows;
+    key.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     scene.add(key);
     const rim = new THREE.DirectionalLight(0x8ab4ff, 0.5);
     rim.position.set(-5, 3, -4);

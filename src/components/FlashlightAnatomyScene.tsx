@@ -78,8 +78,8 @@ const FlashlightAnatomyScene: React.FC<Props> = ({ explode, selected, onSelect, 
     scene.add(new THREE.HemisphereLight(0x93b4ff, 0x14121a, 0.65));
     const key = new THREE.DirectionalLight(0xffffff, 1.15);
     key.position.set(3, 8, 6);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.castShadow = budget.shadows;
+    key.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
     scene.add(key);
     const rim = new THREE.DirectionalLight(0x86b0ff, 0.5);
     rim.position.set(-6, 3, -5);
