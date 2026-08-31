@@ -710,7 +710,13 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
   }, [objects]);
 
   return (
-    <div ref={mountRef} className="relative w-full h-full bg-background cursor-crosshair">
+    <div
+      ref={mountRef}
+      tabIndex={0}
+      role="application"
+      aria-label="מעבדת אור תלת־ממדית: חצים מכוונים את הפנס, [ ו־] מסובבים את המעבדה, + ו־- לזום"
+      className="relative w-full h-full bg-background cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
       {/* Lab controls: explicit on/off switches */}
       <div className="absolute bottom-14 right-3 flex flex-col gap-2 items-end">
         <button
@@ -754,17 +760,31 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       </div>
 
 
-      {/* Light meter readout */}
-      <div className="absolute top-[72px] right-3 game-panel px-3 py-2 text-xs min-w-[190px]">
+      {/* Keyboard-only path to every lab object: same handler as clicking it. */}
+      <div className="sr-only">
+        <h3>בדיקת גופים במעבדה</h3>
+        {objects.map((o) => (
+          <button key={o.id} onClick={() => onInspect?.(o.id)}>
+            בדקו את {o.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Light meter readout — the number comes from the physics model, the verdict from the measurement */}
+      <div className="absolute top-[72px] right-3 game-panel px-3 py-2 text-xs min-w-[200px]" aria-live="polite">
         <div className="font-bold text-primary mb-1">מד עוצמת אור (לוקס)</div>
         {readout ? (
           <>
             <div className="text-foreground">
               גוף נמדד: <strong>{readout.name}</strong>
             </div>
-            <div className="text-accent font-mono text-base">{readout.lux} lx</div>
+            <div className="text-accent font-mono text-base">{formatLux(readout.lux)} lx</div>
             <div className="text-muted-foreground mt-1">
-              {readout.self ? 'קורא אור גם כשהפנס והחדר כבויים → מפיק אור' : 'קורא אור רק כשמאירים עליו → מחזיר אור'}
+              {readout.verdict === 'unknown'
+                ? 'יש אור חיצוני בחדר — כבו את אור החדר ואת הפנס כדי לדעת אם הגוף מפיק אור בעצמו.'
+                : readout.verdict === 'producer'
+                  ? 'המדידה גדולה מאפס גם בחשכה מוחלטת → מפיק אור'
+                  : 'המדידה אפס בחשכה מוחלטת → מחזיר אור בלבד'}
             </div>
           </>
         ) : (
@@ -772,8 +792,14 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         )}
       </div>
 
+      {/* Scale honesty: this is a bench of models, not astronomy. */}
+      <div className="absolute top-3 left-3 game-panel px-3 py-1.5 text-[10px] text-muted-foreground max-w-[220px] leading-relaxed">
+        ⚖️ הגופים על השולחן הם <strong>מודלים להמחשה — לא בקנה מידה</strong>. בפועל השמש גדולה מכדור הארץ
+        פי ~109 ומהירח פי ~400.
+      </div>
+
       <div className="absolute bottom-3 right-3 game-panel px-3 py-1 text-xs text-muted-foreground">
-        הזזת עכבר - כיוון הפנס • גרירה - סיבוב המעבדה • גלגלת - זום • לחיצה על גוף - בדיקה • L - אור החדר • F - פנס
+        עכבר או ← ↑ ↓ → - כיוון הפנס • גרירה או [ ] - סיבוב • גלגלת או + - - זום • לחיצה על גוף - בדיקה • L - אור החדר • F - פנס
       </div>
 
     </div>
