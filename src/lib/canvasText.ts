@@ -4,7 +4,10 @@
  * `fillText(..., maxWidth)` CONDENSES glyphs horizontally instead of wrapping.
  * At ~65% width the letters ם/ס, ד/ר and ה/ח lose the width cues an 11-year-old
  * reader relies on — so instead of condensing we step the font size down until
- * the string fits at natural proportions.
+ * the string fits at its natural proportions.
+ *
+ * The caller's existing `ctx.font` is the starting point, so each scene keeps
+ * its own typography; only the size is reduced, and only when needed.
  */
 export function fitText(
   ctx: CanvasRenderingContext2D,
@@ -12,16 +15,17 @@ export function fitText(
   x: number,
   y: number,
   maxWidth: number,
-  basePx = 54,
-  family = 'system-ui, sans-serif',
-  weight = 'bold'
+  minPx = 22
 ) {
-  let size = basePx;
-  ctx.font = `${weight} ${size}px ${family}`;
-  while (size > 20 && ctx.measureText(text).width > maxWidth) {
-    size -= 2;
-    ctx.font = `${weight} ${size}px ${family}`;
+  const font = ctx.font;
+  const m = /(\d+(?:\.\d+)?)px/.exec(font);
+  if (m) {
+    let size = parseFloat(m[1]);
+    while (size > minPx && ctx.measureText(text).width > maxWidth) {
+      size -= 2;
+      ctx.font = font.replace(m[0], `${size}px`);
+    }
   }
-  ctx.fillText(text, x, y); // no maxWidth: never condense
-  return size;
+  ctx.fillText(text, x, y); // no maxWidth argument: never condense the glyphs
+  ctx.font = font;
 }
