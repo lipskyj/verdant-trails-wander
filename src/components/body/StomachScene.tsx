@@ -140,7 +140,7 @@ const StomachScene: React.FC<Props> = ({ churn, acid, breakdown, running, foodNa
     mucusLabel.sprite.position.set(2.9, 1.0, 1.0);
     scene.add(mucusLabel.sprite);
 
-    const orbit = attachOrbit(renderer.domElement, { orbit: 0.4, elev: 0.25, dist: 10, min: 5, max: 18 });
+    const orbit = attachOrbit(renderer.domElement, { orbit: 0.4, elev: 0.25, dist: 13.5, min: 7, max: 20 });
     const clock = new THREE.Clock();
     let raf = 0;
     let shown = '';

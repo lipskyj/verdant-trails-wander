@@ -453,7 +453,13 @@ const BodyJourneyGame: React.FC = () => {
           </>
         )}
 
-        <HintBox hints={meta.hints} mystery={station} attempts={attempts} />
+        <HintBox
+          hints={meta.hints}
+          mystery={station}
+          attempts={attempts}
+          guideName={BODY.guideName}
+          guideIcon={BODY.guideIcon}
+        />
       </motion.div>
 
       {pulse && BODY_PULSE[pulse] && (
