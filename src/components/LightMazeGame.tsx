@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LightLabScene from './LightLabScene';
 import DarkBoxScene from './DarkBoxScene';
 import TransparencyScene from './TransparencyScene';
@@ -72,6 +72,12 @@ type GameState =
 
 const LightMazeGame: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('islandIntro');
+  // attempt counters per mystery — keeps every mystery_attempt payload identical
+  const attemptsA = useRef(0);
+  const attemptsB = useRef(0);
+  const attemptsC = useRef(0);
+  const attemptsD = useRef(0);
+  const attemptsE = useRef(0);
   const [freeMode, setFreeMode] = useState(false);
   const [withQuizzes, setWithQuizzes] = useState(true);
   const [solvedMysteries, setSolvedMysteries] = useState<string[]>([]);
