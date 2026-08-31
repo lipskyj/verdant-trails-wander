@@ -68,9 +68,10 @@ const GuideQuiz: React.FC<Props> = ({
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/92 backdrop-blur p-4 md:p-6">
       <div className="game-panel w-full max-w-xl p-6 md:p-7 flex flex-col gap-4 text-right">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{ISLAND.guideIcon}</span>
+          <span className="text-3xl">{guideIcon}</span>
           <div className="flex flex-col">
-            <span className="text-[11px] text-muted-foreground">{ISLAND.guideName}</span>
+            <span className="text-[11px] text-muted-foreground">{guideName}</span>
+
             <h2 className="text-lg font-bold text-primary">{heading}</h2>
           </div>
           <span className="ms-auto text-[11px] text-muted-foreground whitespace-nowrap">
