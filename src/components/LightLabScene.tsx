@@ -617,7 +617,8 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
       }
 
       // Per-object animation + light meter
-      let best: { name: string; lux: number; self: boolean } | null = null;
+      let best: { name: string; lux: number; verdict: 'producer' | 'reflector' | 'unknown' } | null = null;
+      const beamAxis = new THREE.Vector3().subVectors(aim, holdPos).normalize();
       targets.forEach((g) => {
         const bug = g.userData.bug as THREE.Group | undefined;
         if (bug) {
@@ -629,21 +630,28 @@ const LightLabScene: React.FC<Props> = ({ objects, onInspect }) => {
         const globe = g.userData.globe as THREE.Mesh | undefined;
         if (globe) globe.rotation.y += dt * 0.25;
 
-        // measured illumination = self-emission + flashlight contribution
+        // --- real photometry (see src/sim/light.ts): E = I·cosθ / d²
         const wp = new THREE.Vector3();
         g.getWorldPosition(wp);
         wp.y += 0.4;
         const toObj = new THREE.Vector3().subVectors(wp, holdPos);
         const d = toObj.length();
-        const cos = toObj.normalize().dot(new THREE.Vector3().subVectors(aim, holdPos).normalize());
-        const inCone = cos > Math.cos(flash.angle);
-        const beamLux = lit && inCone ? Math.max(0, (1 - d / 12)) * 900 : 0;
-        const selfLux = g.userData.self ? 420 : 0;
-        const roomLux = roomLightRef.current ? 180 : 8;
-        const lux = Math.round(beamLux + selfLux + roomLux);
-        if (inCone && (!best || lux > best.lux)) best = { name: g.userData.name, lux, self: !!g.userData.self };
+        const dirToObj = toObj.clone().normalize();
+        const insideCone = inCone(dirToObj.dot(beamAxis), flash.angle);
+        // Lambert's law needs the angle to the SURFACE NORMAL: approximate the
+        // lit face normal as the direction from the body back towards the torch.
+        const faceNormal = new THREE.Vector3().subVectors(wp, new THREE.Vector3(0, wp.y, 0)).normalize();
+        if (faceNormal.lengthSq() < 0.001) faceNormal.set(0, 0, 1);
+        const cosIncidence = Math.max(0.15, -dirToObj.dot(faceNormal));
+        const beamLux = lit && insideCone ? luxAt(SOURCE_CANDELA.torch, d, cosIncidence) : 0;
+        // a producer is measured at its own surface (~0.35 m from the sensor head)
+        const selfLux = g.userData.candela ? luxAt(g.userData.candela as number, 1) : 0;
+        const roomLux = roomLightRef.current ? ROOM_LUX_ON : ROOM_LUX_OFF;
+        const reading = measure(selfLux, beamLux, roomLux);
+        if (insideCone && (!best || reading.total > best.lux))
+          best = { name: g.userData.name, lux: reading.total, verdict: classifyFromReading(reading) };
       });
-      const key = best ? `${best.name}|${Math.round(best.lux / 25)}` : 'none';
+      const key = best ? `${best.name}|${formatLux(best.lux)}|${best.verdict}` : 'none';
       if (key !== lastKey) {
         lastKey = key;
         setReadout(best);
